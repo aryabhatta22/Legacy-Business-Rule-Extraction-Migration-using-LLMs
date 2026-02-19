@@ -1,0 +1,98 @@
+{
+  "program": "VSCBEX01",
+  "language": "COBOL",
+  "structures": [
+    {
+      "id": "IDENTIFICATION_DIV",
+      "type": "METADATA",
+      "name": "IDENTIFICATION DIVISION",
+      "lines": [15, 17],
+      "description": "Defines program identity and metadata including the program name."
+    },
+    {
+      "id": "ENVIRONMENT_DIV",
+      "type": "CONFIGURATION",
+      "name": "ENVIRONMENT DIVISION",
+      "lines": [19, 36],
+      "description": "Specifies runtime environment and file control definitions for flat and indexed files."
+    },
+    {
+      "id": "FILE_CONTROL",
+      "type": "FILE_DEFINITION",
+      "name": "FILE-CONTROL",
+      "lines": [25, 36],
+      "description": "Declares external file assignments, organizations, access modes, record keys, and file status fields."
+    },
+    {
+      "id": "DATA_DIV",
+      "type": "DATA",
+      "name": "DATA DIVISION",
+      "lines": [38, 69],
+      "description": "Defines file records and working storage used throughout the program."
+    },
+    {
+      "id": "FILE_SECTION",
+      "type": "FILE_DEFINITION",
+      "name": "FILE SECTION",
+      "lines": [39, 52],
+      "description": "Declares file descriptors for the load file and indexed customer file using COPY books."
+    },
+    {
+      "id": "WORKING_STORAGE",
+      "type": "STORAGE",
+      "name": "WORKING-STORAGE SECTION",
+      "lines": [54, 69],
+      "description": "Holds file status codes, record counters, and end-of-job display messages."
+    },
+    {
+      "id": "MAINLINE",
+      "type": "ENTRY_POINT",
+      "name": "0000-Mainline",
+      "lines": [71, 75],
+      "description": "Top-level execution flow of the program. Controls overall job sequencing by invoking initialization, processing, and termination paragraphs."
+    },
+    {
+      "id": "BEGIN_JOB",
+      "type": "INITIALIZATION",
+      "name": "1000-Begin-Job",
+      "lines": [77, 80],
+      "description": "Initializes program execution by opening input and output files and performing the first read of the load file."
+    },
+    {
+      "id": "PROCESS_LOOP",
+      "type": "LOOP",
+      "name": "2000-Process",
+      "lines": [82, 88],
+      "condition": "UNTIL WS-LOADFile-EOF",
+      "description": "Main processing loop. Continues inserting records into the indexed file and reading the next input record until end-of-file is reached."
+    },
+    {
+      "id": "INSERT_RECORD",
+      "type": "PROCESSING",
+      "name": "2100-Insert-CUSTFile",
+      "lines": [90, 93],
+      "description": "Moves the current load file record into the indexed file record structure and triggers the write operation."
+    },
+    {
+      "id": "END_JOB",
+      "type": "TERMINATION",
+      "name": "3000-End-Job",
+      "lines": [95, 102],
+      "description": "Handles normal end-of-job processing by displaying summary statistics and closing all open files."
+    },
+    {
+      "id": "READ_LOADFILE",
+      "type": "I_O",
+      "name": "5000-Read-LOADFile",
+      "lines": [104, 122],
+      "description": "Reads the next record from the load file, updates record counters, sets end-of-file condition, and performs error handling for read failures."
+    },
+    {
+      "id": "WRITE_CUSTFILE",
+      "type": "I_O",
+      "name": "6000-Write-CUSTFile",
+      "lines": [124, 136],
+      "description": "Writes a customer record to the indexed file, increments insert counters on success, and performs controlled termination on write errors."
+    }
+  ]
+}

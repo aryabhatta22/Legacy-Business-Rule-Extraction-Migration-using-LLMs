@@ -1,0 +1,85 @@
+{
+  "program": "VSCBEX02",
+  "language": "COBOL",
+  "structures": [
+    {
+      "id": "PROGRAM_METADATA",
+      "type": "METADATA",
+      "name": "Program Header",
+      "lines": [1, 22],
+      "description": "Program documentation including purpose, execution mode, portability notes, and maintenance log."
+    },
+    {
+      "id": "IDENTIFICATION",
+      "type": "DECLARATION",
+      "name": "IDENTIFICATION DIVISION",
+      "lines": [23, 26],
+      "description": "Declares the program name VSCBEX02 and uniquely identifies the compilation unit."
+    },
+    {
+      "id": "FILE_CONTROL",
+      "type": "CONFIGURATION",
+      "name": "FILE-CONTROL",
+      "lines": [33, 41],
+      "description": "Defines the indexed input file, its physical assignment, record key, access mode, and file status handling."
+    },
+    {
+      "id": "FILE_DEFINITION",
+      "type": "DATA_DEFINITION",
+      "name": "INFile FD",
+      "lines": [45, 47],
+      "description": "Defines the indexed file record structure using the shared CUSTOMER copybook."
+    },
+    {
+      "id": "WORKING_STORAGE",
+      "type": "DATA_DEFINITION",
+      "name": "WORKING-STORAGE SECTION",
+      "lines": [49, 60],
+      "description": "Declares file status fields, record counters, and end-of-job message constants."
+    },
+    {
+      "id": "MAINLINE",
+      "type": "ENTRY_POINT",
+      "name": "0000-Mainline",
+      "lines": [62, 68],
+      "description": "Top-level control flow coordinating initialization, iterative record processing, and program termination."
+    },
+    {
+      "id": "BEGIN_JOB",
+      "type": "INITIALIZATION",
+      "name": "1000-Begin-Job",
+      "lines": [70, 75],
+      "description": "Opens the indexed input file and primes processing by performing the first file read."
+    },
+    {
+      "id": "PROCESS_LOOP",
+      "type": "LOOP",
+      "name": "2000-Process",
+      "lines": [77, 84],
+      "condition": "UNTIL WS-INFile-EOF",
+      "description": "Sequentially processes each indexed record by displaying it and advancing the file cursor."
+    },
+    {
+      "id": "READ_INFILE",
+      "type": "FILE_IO",
+      "name": "5000-Read-INFile",
+      "lines": [92, 114],
+      "description": "Reads the next indexed record, updates counters, detects end-of-file, and handles read errors."
+    },
+    {
+      "id": "END_JOB",
+      "type": "TERMINATION",
+      "name": "3000-End-Job",
+      "lines": [86, 90],
+      "description": "Displays execution summary statistics and closes the indexed file."
+    },
+    {
+      "id": "ERROR_HANDLING",
+      "type": "CONTROL_FLOW",
+      "name": "Read Error Path",
+      "lines": [104, 113],
+      "description": "Handles abnormal read conditions by displaying diagnostics, performing cleanup, setting return code, and terminating execution."
+    }
+  ]
+}
+

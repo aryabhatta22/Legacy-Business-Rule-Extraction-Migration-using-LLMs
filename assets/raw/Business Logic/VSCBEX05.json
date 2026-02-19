@@ -1,0 +1,53 @@
+
+{
+  "program": "VSCBEX05",
+  "rules": [
+    {
+      "rule_id": "BR_001",
+      "category": "BUSINESS_RULE",
+      "domain": "customer_deletion",
+      "source_lines": [98, 103],
+      "cobol_snippet": "MOVE WS-Key-HOLD TO WS-Key-Table-Setup",
+      "natural_language_rule": "The system initializes a predefined list of customer IDs to be deleted.",
+      "confidence": "high"
+    },
+    {
+      "rule_id": "BR_002",
+      "category": "BUSINESS_RULE",
+      "domain": "customer_deletion",
+      "source_lines": [105, 116],
+      "cobol_snippet": "PERFORM VARYING WS-Key-SUB",
+      "natural_language_rule": "Each customer ID in the key table is processed to locate and delete the corresponding record.",
+      "confidence": "high"
+    },
+    {
+      "rule_id": "BR_003",
+      "category": "BUSINESS_RULE",
+      "domain": "customer_deletion",
+      "source_lines": [150, 154],
+      "cobol_snippet": "DELETE CUSTFile",
+      "natural_language_rule": "Once a customer record is successfully located, it is permanently deleted from the indexed file.",
+      "confidence": "high"
+    },
+    {
+      "rule_id": "TR_004",
+      "category": "TECHNICAL_RULE",
+      "domain": "record_tracking",
+      "source_lines": [151, 154],
+      "cobol_snippet": "ADD +1 TO FD-CUSTFile-Delete-Cnt",
+      "natural_language_rule": "The system tracks the number of successfully deleted customer records.",
+      "confidence": "high"
+    },
+    {
+      "rule_id": "ER_005",
+      "category": "ERROR_HANDLING_RULE",
+      "domain": "delete_error",
+      "source_lines": [155, 164],
+      "cobol_snippet": "DISPLAY \"Delete CUSTFile Failed.\"",
+      "natural_language_rule": "If a delete operation fails, the program must terminate after displaying an error message.",
+      "confidence": "high"
+    }
+  ]
+}
+
+

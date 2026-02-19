@@ -1,0 +1,5 @@
+{
+  "editor.inlineSuggest.enabled": true,
+  "editor.formatOnSave": true,
+  "gemini.codeAssist.contextMode": "workspace"
+}

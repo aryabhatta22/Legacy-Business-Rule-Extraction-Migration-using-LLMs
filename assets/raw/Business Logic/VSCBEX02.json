@@ -1,0 +1,51 @@
+{
+  "program": "VSCBEX02",
+  "rules": [
+    {
+      "rule_id": "BR_001",
+      "category": "BUSINESS_RULE",
+      "domain": "customer_data_reading",
+      "source_lines": [50, 55],
+      "cobol_snippet": "OPEN INPUT INFile",
+      "natural_language_rule": "The system opens the indexed customer file in input mode to read all customer records.",
+      "confidence": "high"
+    },
+    {
+      "rule_id": "BR_002",
+      "category": "BUSINESS_RULE",
+      "domain": "customer_data_reading",
+      "source_lines": [57, 64],
+      "cobol_snippet": "PERFORM 2000-Process UNTIL WS-INFile-EOF",
+      "natural_language_rule": "All customer records are read sequentially until the end-of-file condition is reached.",
+      "confidence": "high"
+    },
+    {
+      "rule_id": "BR_003",
+      "category": "BUSINESS_RULE",
+      "domain": "customer_data_presentation",
+      "source_lines": [58, 62],
+      "cobol_snippet": "DISPLAY INFile-Customer-Record",
+      "natural_language_rule": "Each customer record read from the indexed file is displayed to the user.",
+      "confidence": "high"
+    },
+    {
+      "rule_id": "TR_004",
+      "category": "TECHNICAL_RULE",
+      "domain": "record_tracking",
+      "source_lines": [82, 85],
+      "cobol_snippet": "ADD +1 TO FD-INFile-Record-Cnt",
+      "natural_language_rule": "The system increments a counter for every successfully read customer record.",
+      "confidence": "high"
+    },
+    {
+      "rule_id": "ER_005",
+      "category": "ERROR_HANDLING_RULE",
+      "domain": "file_read_error",
+      "source_lines": [88, 96],
+      "cobol_snippet": "DISPLAY \"Read INFile Failed.\"",
+      "natural_language_rule": "If a read error occurs that is not end-of-file, the program must terminate after displaying an error message.",
+      "confidence": "high"
+    }
+  ]
+}
+

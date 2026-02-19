@@ -1,0 +1,51 @@
+{
+  "program": "VSCBEX04",
+  "rules": [
+    {
+      "rule_id": "BR_001",
+      "category": "BUSINESS_RULE",
+      "domain": "customer_price_update",
+      "source_lines": [101, 105],
+      "cobol_snippet": "MOVE WS-Key-HOLD TO WS-Key-Table-Setup",
+      "natural_language_rule": "The system initializes a list of customer IDs and associated price updates.",
+      "confidence": "high"
+    },
+    {
+      "rule_id": "BR_002",
+      "category": "BUSINESS_RULE",
+      "domain": "customer_price_update",
+      "source_lines": [110, 121],
+      "cobol_snippet": "PERFORM VARYING WS-Key-SUB",
+      "natural_language_rule": "Each customer ID in the table is processed to update the corresponding customer record.",
+      "confidence": "high"
+    },
+    {
+      "rule_id": "BR_003",
+      "category": "BUSINESS_RULE",
+      "domain": "customer_price_update",
+      "source_lines": [123, 128],
+      "cobol_snippet": "MOVE WS-Price TO CUSTFile-Cust-Price",
+      "natural_language_rule": "The customer price field is updated using the predefined price associated with the customer ID.",
+      "confidence": "high"
+    },
+    {
+      "rule_id": "BR_004",
+      "category": "BUSINESS_RULE",
+      "domain": "customer_price_update",
+      "source_lines": [158, 163],
+      "cobol_snippet": "REWRITE CUSTFile-Customer-Record",
+      "natural_language_rule": "Updated customer records must be rewritten to the indexed file to persist changes.",
+      "confidence": "high"
+    },
+    {
+      "rule_id": "TR_005",
+      "category": "TECHNICAL_RULE",
+      "domain": "record_tracking",
+      "source_lines": [134, 138],
+      "cobol_snippet": "ADD +1 TO FD-CUSTFile-Re-Write-Cnt",
+      "natural_language_rule": "The system tracks the number of successfully updated customer records.",
+      "confidence": "high"
+    }
+  ]
+}
+
