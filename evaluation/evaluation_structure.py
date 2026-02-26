@@ -36,7 +36,7 @@ def _token_overlap_ratio(a: str, b: str) -> float:
     return len(inter) / max(len(at), len(bt))
 
 
-def evaluate_structure(inferred: Dict[str, Any], annotated: Dict[str, Any]) -> Dict[str, Any]:
+def evaluate_structure_base(inferred: Dict[str, Any], annotated: Dict[str, Any]) -> Dict[str, Any]:
     """Compare inferred StructureOutput-like dict with annotated dict.
 
     Returns a report dict with counts and lists of matched/missing/hallucinated.
@@ -99,3 +99,47 @@ def evaluate_structure(inferred: Dict[str, Any], annotated: Dict[str, Any]) -> D
     # totals
     report_summary = {k: len(v) for k, v in report.items()}
     return {"summary": report_summary, "details": report}
+
+
+def evaluate_structure(inferred: Dict[str, Any], annotated: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Enhanced evaluator that includes:
+    1. Base counts (Correct/Partial/Missing/Hallucinated)
+    2. Completeness & Hallucination Rate
+    3. Structural Fidelity (Hierarchy check)
+    """
+    # 1. Run your original logic to get the base report
+    # (Assuming the original logic you provided is available as 'base_report')
+    base_report = evaluate_structure_base(inferred, annotated)
+    summary = base_report["summary"]
+    details = base_report["details"]
+
+    # --- 6.2 Completeness Calculation ---
+    # Formula: (Correct + Partial) / Total Ground Truth
+    total_gt = summary["correct"] + summary["partial"] + summary["missing"]
+    completeness = (summary["correct"] + summary["partial"]) / total_gt if total_gt > 0 else 0
+
+    # --- 6.3 Hallucination Rate Calculation ---
+    # Formula: Hallucinated / Total Generated
+    total_gen = summary["correct"] + summary["partial"] + summary["hallucinated"]
+    hallucination_rate = summary["hallucinated"] / total_gen if total_gen > 0 else 0
+
+    # --- 6.4 Structural Fidelity ---
+    # We check if 'parent_id' is used correctly to link Paragraphs to Sections/Divisions
+    inferred_structs = inferred.get("structures", [])
+    hierarchy_links = [s for s in inferred_structs if s.get("parent_id") is not None]
+
+    # Fidelity is the ratio of items correctly placed in a hierarchy
+    structural_fidelity = len(hierarchy_links) / len(inferred_structs) if inferred_structs else 0
+
+    # Update Summary with new metrics
+    enhanced_summary = {
+        **summary,
+        "completeness": round(completeness, 4),
+        "hallucination_rate": round(hallucination_rate, 4),
+        "structural_fidelity": round(structural_fidelity, 4),
+        "total_gt": total_gt,
+        "total_generated": total_gen
+    }
+
+    return {"summary": enhanced_summary, "details": details}

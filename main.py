@@ -5,6 +5,7 @@ from pipeline.llm_call import LLMCaller
 from experiments.constants import FILE_PATHS
 from experiments import experiments_log
 from pipeline.llm_factory import LLM_Factory
+import pprint
 
 # evaluators
 from evaluation.evaluation_structure import evaluate_structure
@@ -26,6 +27,7 @@ def _cobol_code_from_lines(cobol_obj: dict) -> str:
 
 
 def main():
+    print("*" * 20)
     base = os.getcwd()
     cobol_dir = os.path.join(base, FILE_PATHS["COBOL_PROGRAM_DIR"])
     annotations_base = os.path.join(base, "assets", "raw")
@@ -39,12 +41,16 @@ def main():
     programs = load_all_programs(cobol_dir, os.path.join(annotations_base))
 
     for prog in programs:
+        print("-" * 20)
+        print(f"Processing program: {prog['program']}")
         program_name = prog["program"]
         cobol_obj = prog["cobol"]
         cobol_code = _cobol_code_from_lines(cobol_obj)
 
         # Structure task
         for strategy, template in structure_prompts.get("strategies", {}).items():
+            print("-" * 20)
+            print(f"\tUsing structure prompt strategy: {strategy}")
             prompt = template.format(program=program_name, code=cobol_code)
             # If LLM is enabled, user must provide LLM factory; otherwise dry-run
             parsed = None
@@ -53,6 +59,7 @@ def main():
                 try:
                     modelsList = LLM_Factory.get_AllModels()
                     for model in modelsList:
+                        print(f"\t\tEvaluating with model: {model.get('ServiceName')}")
                         ServiceName, modelArgs, modelInstance = model.values()
                         from pipeline.llm_call import LLMCaller
                         from schema.program_structure import StructureOutput
@@ -60,7 +67,7 @@ def main():
                         llm_caller = LLMCaller(
                             modelInstance,
                             StructureOutput,
-                            task_name=f"structure_evaluation for {ServiceName} under args {str(modelArgs)}",
+                            task_name=f"structure_evaluation for {ServiceName}",
                         )
                         res = llm_caller.call(prompt)
                         if res.get("success") and res.get("parsed") is not None:
@@ -92,23 +99,40 @@ def main():
                         # log
                         experiments_log.log_result(
                             {
-                                "modelLevelInfo": {
-                                    "model": ServiceName,
-                                    "model_args": modelArgs,
-                                    "structured_output": parsed,
-                                },
+                                "program": program_name,
                                 "task": "structure",
                                 "prompt_strategy": strategy,
-                                "program": program_name,
+                                "model": ServiceName,
                                 "validation_status": validation_status,
+                                # Standard Counts
                                 "evaluation": eval_report.get("summary"),
+                                # Core Performance Metrics (Lifting these for easier access)
+                                "metrics": {
+                                    "completeness": eval_report["summary"].get(
+                                        "completeness"
+                                    ),
+                                    "hallucination_rate": eval_report["summary"].get(
+                                        "hallucination_rate"
+                                    ),
+                                    "fidelity": eval_report["summary"].get(
+                                        "structural_fidelity"
+                                    )
+                                    or eval_report["summary"].get("grounding_fidelity"),
+                                },
+                                # Useful for debugging/re-evaluation
+                                "raw_output_length": len(str(parsed)),
                             }
+                        )
+                        print(
+                            f"\t\tEvaluation report summary: {pprint.pprint(eval_report.get('summary'))}"
                         )
                 except Exception as e:
                     validation_status = f"error:{e}"
 
         # Business task
         for strategy, template in business_prompts.get("strategies", {}).items():
+            print("-" * 20)
+            print(f"\tUsing business prompt strategy: {strategy}")
             prompt = template.format(program=program_name, code=cobol_code)
             parsed = None
             validation_status = "skipped"
@@ -116,6 +140,7 @@ def main():
                 try:
                     modelsList = LLM_Factory.get_AllModels()
                     for model in modelsList:
+                        print(f"\t\tEvaluating with model: {model.get('ServiceName')}")
                         ServiceName, modelArgs, modelInstance = model.values()
                         from pipeline.llm_call import LLMCaller
                         from schema.business_logic import BusinessLogicOutput
@@ -123,7 +148,7 @@ def main():
                         llm_caller = LLMCaller(
                             modelInstance,
                             BusinessLogicOutput,
-                            task_name=f"structure_evaluation for {ServiceName} under args {str(modelArgs)}",
+                            task_name=f"structure_evaluation for {ServiceName}",
                         )
                         res = llm_caller.call(prompt)
                         if res.get("success") and res.get("parsed") is not None:
@@ -150,20 +175,37 @@ def main():
 
                         experiments_log.log_result(
                             {
-                                "modelLevelInfo": {
-                                    "model": ServiceName,
-                                    "model_args": modelArgs,
-                                    "structured_output": parsed,
-                                },
+                                "program": program_name,
                                 "task": "business",
                                 "prompt_strategy": strategy,
-                                "program": program_name,
+                                "model": ServiceName,
                                 "validation_status": validation_status,
+                                # Standard Counts
                                 "evaluation": eval_report.get("summary"),
+                                # Core Performance Metrics (Lifting these for easier access)
+                                "metrics": {
+                                    "completeness": eval_report["summary"].get(
+                                        "completeness"
+                                    ),
+                                    "hallucination_rate": eval_report["summary"].get(
+                                        "hallucination_rate"
+                                    ),
+                                    "fidelity": eval_report["summary"].get(
+                                        "structural_fidelity"
+                                    )
+                                    or eval_report["summary"].get("grounding_fidelity"),
+                                },
+                                # Useful for debugging/re-evaluation
+                                "raw_output_length": len(str(parsed)),
                             }
+                        )
+                        print(
+                            f"\t\tEvaluation report summary: {pprint.pprint(eval_report.get('summary'))}"
                         )
                 except Exception as e:
                     validation_status = f"error:{e}"
+
+    print("*" * 20)
 
 
 if __name__ == "__main__":

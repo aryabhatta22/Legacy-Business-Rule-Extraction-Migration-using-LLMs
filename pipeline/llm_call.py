@@ -1,7 +1,6 @@
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ProviderStrategy
 from pydantic import BaseModel, ValidationError
-from langchain.agents.structured_output import ProviderStrategy
 from typing import Type, Optional, Any, Dict
 import time
 import json
@@ -26,7 +25,9 @@ class LLMCaller:
         self.agent = create_agent(
             model=llm_model,
             tools=[],
-            response_format=ProviderStrategy(schema=output_schema), # No tool_message_content needed
+            response_format=ProviderStrategy(
+                schema=output_schema
+            ),  # No tool_message_content needed
         )
 
     def _normalize_raw(self, raw: Any) -> Any:
@@ -71,8 +72,9 @@ class LLMCaller:
         while attempt < max_retries:
             attempt += 1
             try:
-                logger.debug(
-                    "Invoking agent (attempt %d) for task=%s", attempt, self.task_name
+                print(
+                    "\t\t\tInvoking agent. Attempt: ",
+                    attempt,
                 )
                 raw_response = self.agent.invoke(
                     {"messages": [{"role": "user", "content": prompt}]}
@@ -90,13 +92,16 @@ class LLMCaller:
                     else:
                         # Attempt to parse/validate using the provided Pydantic schema
                         if isinstance(normalized, (dict, list)):
-                            parsed = self.output_schema.model_validate(normalized.get("structured_response"))
+                            parsed = self.output_schema.model_validate(
+                                normalized.get("structured_response")
+                            )
                         else:
-                            #TODO: fIX If we couldn't coerce into a dict/list, try to pass string as-is
+                            # TODO: fIX If we couldn't coerce into a dict/list, try to pass string as-is
                             parsed = self.output_schema.model_validate(normalized)
 
-                    logger.info(
-                        "Agent response validated successfully on attempt %d", attempt
+                    print(
+                        "\t\t\tAgent response validated successfully on attempt: ",
+                        attempt,
                     )
                     return {
                         "success": True,
@@ -110,32 +115,27 @@ class LLMCaller:
                 except ValidationError as ve:
                     # Capture validation errors and retry
                     last_validation_error = ve.json()
-                    logger.warning(
-                        "Validation failed on attempt %d for task=%s: %s",
-                        attempt,
-                        self.task_name,
-                        last_validation_error,
+                    print(
+                        f"\t\t\tValidation failed on attempt: {attempt} with validation error: {last_validation_error}",
                     )
 
                     # If we've exhausted attempts, break and return failure below
                 except Exception as ve2:
                     # Other parsing errors (e.g., when parse_obj throws unexpected types)
                     last_validation_error = str(ve2)
-                    logger.exception("Parsing error on attempt %d", attempt)
+                    print("\t\t\tParsing error on attempt: ", attempt)
 
             except Exception as exc:
                 # Capture any exception raised by agent.invoke itself
                 last_exception = str(exc)
-                logger.exception(
-                    "agent.invoke() raised an exception on attempt %d for task=%s",
-                    attempt,
-                    self.task_name,
+                print(
+                    f"\t\t\t!!!! agent.invoke() raised an exception on attempt: {attempt} with error: {last_exception}",
                 )
 
             # If we are going to retry, wait with exponential backoff
             if attempt < max_retries:
                 sleep_for = backoff_factor ** (attempt - 1)
-                logger.debug(
+                print(
                     "Retrying after %.2fs (attempt %d/%d)",
                     sleep_for,
                     attempt + 1,
@@ -144,12 +144,8 @@ class LLMCaller:
                 time.sleep(sleep_for)
 
         # Exhausted retries - return failure information
-        logger.error(
-            "Exhausted %d attempts for task=%s. Last validation_error=%s last_exception=%s",
-            max_retries,
-            self.task_name,
-            last_validation_error,
-            last_exception,
+        print(
+            f"Exhausted {max_retries} attempts for task: {self.task_name}. Last validation_error: {last_validation_error} last_exception: {last_exception}",
         )
 
         return {
