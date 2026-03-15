@@ -1,0 +1,33 @@
+{
+  "total_results": 16,
+  "run_timestamp": "2026-03-15T15:37:05.153992Z",
+  "by_model_task": [
+    {
+      "model": "OPEN_AI",
+      "task": "structure",
+      "files": 8,
+      "correct": 44,
+      "missing": 10,
+      "hallucinated": 212,
+      "partial": 154,
+      "valid_runs": 8
+    },
+    {
+      "model": "OPEN_AI",
+      "task": "business",
+      "files": 8,
+      "correct": 2,
+      "missing": 102,
+      "hallucinated": 36,
+      "partial": 56,
+      "valid_runs": 8
+    }
+  ],
+  "global": {
+    "total_correct": 46,
+    "total_missing": 112,
+    "total_hallucinated": 248,
+    "precision": 0.1565,
+    "recall": 0.2911
+  }
+}

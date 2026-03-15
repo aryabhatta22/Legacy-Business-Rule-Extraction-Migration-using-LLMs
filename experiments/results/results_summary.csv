@@ -1,0 +1,17 @@
+model,prompt_strategy,task,file,validation_status,correct,missing,hallucinated,partial,timestamp
+OPEN_AI,naive_1,structure,VSCBEX01,valid,6,0,32,20,2026-03-15T15:34:15.805195Z
+OPEN_AI,naive_2,structure,VSCBEX01,valid,4,2,24,20,2026-03-15T15:34:28.492852Z
+OPEN_AI,structured_1,structure,VSCBEX01,valid,6,2,38,18,2026-03-15T15:34:47.539465Z
+OPEN_AI,structured_2,structure,VSCBEX01,valid,6,2,32,18,2026-03-15T15:35:00.959871Z
+OPEN_AI,cot_hidden_1,structure,VSCBEX01,valid,6,2,28,18,2026-03-15T15:35:15.745350Z
+OPEN_AI,cot_hidden_2,structure,VSCBEX01,valid,6,0,18,20,2026-03-15T15:35:26.503973Z
+OPEN_AI,structure_aware_1,structure,VSCBEX01,valid,4,2,22,20,2026-03-15T15:35:40.296852Z
+OPEN_AI,structure_aware_2,structure,VSCBEX01,valid,6,0,18,20,2026-03-15T15:35:51.433967Z
+OPEN_AI,naive_1,business,VSCBEX01,valid,0,12,2,8,2026-03-15T15:36:06.598342Z
+OPEN_AI,naive_2,business,VSCBEX01,valid,0,18,8,2,2026-03-15T15:36:17.034113Z
+OPEN_AI,structured_1,business,VSCBEX01,valid,0,8,4,12,2026-03-15T15:36:30.143550Z
+OPEN_AI,structured_2,business,VSCBEX01,valid,0,8,6,12,2026-03-15T15:36:39.761038Z
+OPEN_AI,cot_hidden_1,business,VSCBEX01,valid,2,6,2,12,2026-03-15T15:36:47.046428Z
+OPEN_AI,cot_hidden_2,business,VSCBEX01,valid,0,16,4,4,2026-03-15T15:36:53.107306Z
+OPEN_AI,structure_aware_1,business,VSCBEX01,valid,0,16,4,4,2026-03-15T15:36:59.017201Z
+OPEN_AI,structure_aware_2,business,VSCBEX01,valid,0,18,6,2,2026-03-15T15:37:04.967584Z

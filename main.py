@@ -4,7 +4,10 @@ from pipeline.load_data import load_all_programs
 from pipeline.llm_call import LLMCaller
 from experiments.constants import FILE_PATHS
 from experiments import experiments_log
+from experiments.pipeline_logger import get_logger, init_logger
 from pipeline.llm_factory import LLM_Factory
+from pipeline.evaluation import build_evaluation_result
+from pipeline.result_reporter import ResultReporter
 
 # evaluators
 from evaluation.evaluation_structure import evaluate_structure
@@ -26,8 +29,15 @@ def _cobol_code_from_lines(cobol_obj: dict) -> str:
 
 
 def main():
+    # Initialize logger and result reporter
+    init_logger()
+    logger = get_logger()
+    reporter = ResultReporter()
+
+    logger.pipeline_start()
     print("*" * 20)
     print("[PIPELINE] Starting COBOL extraction pipeline")
+
     base = os.getcwd()
     cobol_dir = os.path.join(base, FILE_PATHS["COBOL_PROGRAM_DIR"])
     annotations_base = os.path.join(base, "assets", "raw")
@@ -54,6 +64,7 @@ def main():
             print("-" * 20)
             print("  [TASK] structure")
             print(f"    [STRATEGY] {strategy}")
+            logger.task_start("structure", strategy)
             prompt = template.format(program=program_name, code=cobol_code)
 
             # If LLM is enabled, user must provide LLM factory; otherwise dry-run
@@ -76,11 +87,14 @@ def main():
 
                         model_name = model.get('ServiceName')
                         print(f"      [MODEL] {model_name} - {model.get('modelArgs', {}).get('model')}")
+                        if model_name:
+                            logger.model_start(model_name)
                         ServiceName, modelArgs, modelInstance = model.values()
                         from pipeline.llm_call import LLMCaller
                         from schema.program_structure import StructureOutput
 
                         print("        Loading prompt and calling LLM...")
+                        logger.llm_call_start()
                         llm_caller = LLMCaller(
                             modelInstance,
                             StructureOutput,
@@ -88,17 +102,21 @@ def main():
                         )
                         res = llm_caller.call(prompt)
                         if res.get("success") and res.get("parsed") is not None:
+                            logger.json_extraction(True)
                             parsed_model = res.get("parsed")
                             # convert to plain dict
                             parsed = getattr(parsed_model, "model_dump", None)
-                            if callable(parsed):
+                            if callable(parsed) and parsed_model is not None:
                                 parsed = parsed_model.model_dump()
                             else:
                                 parsed = getattr(parsed_model, "dict", lambda: None)()
                             validation_status = "valid"
+                            logger.schema_validation(True)
                             print("        Schema validation: valid")
                         else:
+                            logger.json_extraction(False)
                             validation_status = "invalid"
+                            logger.schema_validation(False)
                             print("        Schema validation: invalid")
                         # when LLM disabled, use annotated as inferred for evaluation (dry-run)
                         inferred = (
@@ -117,7 +135,21 @@ def main():
                             else {"summary": {}, "details": {}}
                         )
 
-                        # log
+                        # Build detailed evaluation result (only if we have valid parsed output)
+                        if parsed and isinstance(parsed, dict):
+                            result = build_evaluation_result(
+                                model=ServiceName,
+                                prompt_strategy=strategy,
+                                task="structure",
+                                file=program_name,
+                                validation_status=validation_status,
+                                llm_output=parsed,
+                                ground_truth=annotated,
+                                evaluation_report=eval_report,
+                            )
+                            reporter.add_result(result.to_dict())
+
+                        # Log to experiments log (backward compatibility)
                         experiments_log.log_result(
                             {
                                 "program": program_name,
@@ -147,6 +179,7 @@ def main():
 
                         # Log evaluation summary
                         summary = eval_report.get("summary", {})
+                        logger.evaluation_complete(summary)
                         print(f"        Evaluation: correct={summary.get('correct')}, "
                               f"partial={summary.get('partial')}, "
                               f"missing={summary.get('missing')}, "
@@ -160,6 +193,7 @@ def main():
             print("-" * 20)
             print("  [TASK] business")
             print(f"    [STRATEGY] {strategy}")
+            logger.task_start("business", strategy)
             prompt = template.format(program=program_name, code=cobol_code)
 
             # GHOST DATA LEAK FIX: Reset all tracking variables at the beginning of
@@ -181,11 +215,14 @@ def main():
 
                         model_name = model.get('ServiceName')
                         print(f"      [MODEL] {model_name}")
+                        if model_name:
+                            logger.model_start(model_name)
                         ServiceName, modelArgs, modelInstance = model.values()
                         from pipeline.llm_call import LLMCaller
                         from schema.business_logic import BusinessLogicOutput
 
                         print("        Loading prompt and calling LLM...")
+                        logger.llm_call_start()
                         llm_caller = LLMCaller(
                             modelInstance,
                             BusinessLogicOutput,
@@ -193,16 +230,20 @@ def main():
                         )
                         res = llm_caller.call(prompt)
                         if res.get("success") and res.get("parsed") is not None:
+                            logger.json_extraction(True)
                             parsed_model = res.get("parsed")
                             parsed = getattr(parsed_model, "model_dump", None)
-                            if callable(parsed):
+                            if callable(parsed) and parsed_model is not None:
                                 parsed = parsed_model.model_dump()
                             else:
                                 parsed = getattr(parsed_model, "dict", lambda: None)()
                             validation_status = "valid"
+                            logger.schema_validation(True)
                             print("        Schema validation: valid")
                         else:
+                            logger.json_extraction(False)
                             validation_status = "invalid"
+                            logger.schema_validation(False)
                             print("        Schema validation: invalid")
                         inferred = (
                             parsed
@@ -218,6 +259,21 @@ def main():
                             else {"summary": {}, "details": {}}
                         )
 
+                        # Build detailed evaluation result (only if we have valid parsed output)
+                        if parsed and isinstance(parsed, dict):
+                            result = build_evaluation_result(
+                                model=ServiceName,
+                                prompt_strategy=strategy,
+                                task="business",
+                                file=program_name,
+                                validation_status=validation_status,
+                                llm_output=parsed,
+                                ground_truth=annotated,
+                                evaluation_report=eval_report,
+                            )
+                            reporter.add_result(result.to_dict())
+
+                        # log (backward compatibility)
                         experiments_log.log_result(
                             {
                                 "program": program_name,
@@ -247,6 +303,7 @@ def main():
 
                         # Log evaluation summary
                         summary = eval_report.get("summary", {})
+                        logger.evaluation_complete(summary)
                         print(f"        Evaluation: correct={summary.get('correct')}, "
                               f"partial={summary.get('partial')}, "
                               f"missing={summary.get('missing')}, "
@@ -256,6 +313,14 @@ def main():
                     print(f"        Error: {str(e)[:100]}")
 
     print("*" * 20)
+
+    # Save all results and generate summaries
+    reporter.save_json()
+    reporter.save_csv()
+    reporter.save_summary()
+    reporter.print_summary()
+    logger.pipeline_end()
+
     print("[PIPELINE] Experiment complete")
 
 

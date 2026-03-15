@@ -53,6 +53,7 @@ For each prompt strategy:
 ```
 
 Each task:
+
 - Is inferred **independently** (no cross-task reuse)
 - Has its own **output schema** (strict Pydantic validation)
 - Is evaluated against **separate ground truth** annotations
@@ -85,6 +86,7 @@ Each task:
 ### 5.1 Ghost Data Leak Prevention
 
 All tracking variables are **reset at the beginning of each model iteration**:
+
 - `parsed` (structured output)
 - `validation_status` (pass/fail/error)
 - `evaluation_metrics` (correct/missing/hallucinated counts)
@@ -100,6 +102,7 @@ false equivalence in results.
 
 LLMs often wrap JSON in markdown code blocks, explanations, or XML tags.
 The extraction pipeline:
+
 1. Searches for markdown code blocks (`\`\`\`json ... \`\`\``)
 2. Finds first `{` and last `}` for raw JSON
 3. Attempts parsing from substring
@@ -114,6 +117,7 @@ than regex or library-based parsing for this use case.
 ### 5.3 Schema-Driven Validation
 
 Pydantic schemas enforce strict output structure:
+
 - **StructureOutput**: Program name, list of structures with types, line ranges
 - **BusinessLogicOutput**: Program name, list of business rules with evidence
 
@@ -126,10 +130,12 @@ weaknesses in prompt strategies.
 ### 5.4 Line-Overlap Evaluation
 
 Evaluation uses **line-based matching**, not text-based:
+
 - **Structures**: Matched by line range overlap and name token similarity
 - **Business Rules**: Matched by evidence line overlap and rule statement similarity
 
 This approach:
+
 - Grounds inferred items in source code
 - Allows for paraphrasing (token overlap >= 0.5)
 - Prevents spurious matches from similar text
@@ -163,6 +169,7 @@ assets/raw/Annotated data/
 ```
 
 Structure of each file:
+
 ```json
 {
   "program_name": "VSCBEX01",
@@ -190,6 +197,7 @@ assets/raw/Business Logic/
 ```
 
 Structure of each file:
+
 ```json
 {
   "program_name": "VSCBEX01",
@@ -215,10 +223,12 @@ Used ONLY for business logic task evaluation.
 **Goal**: Identify program constructs and their organizational roles
 
 **Input**:
+
 - COBOL code (with line numbers)
 - Prompt strategy template
 
 **Output**: StructureOutput containing:
+
 - Program name
 - Language
 - List of structures with:
@@ -239,11 +249,13 @@ Used ONLY for business logic task evaluation.
 **Goal**: Infer domain-level system behavior and business guarantees
 
 **Input**:
+
 - COBOL code (with line numbers)
 - Prompt strategy template
 - (Optionally: inferred structure from Task 1)
 
 **Output**: BusinessLogicOutput containing:
+
 - Program name
 - List of business rules with:
   - Rule statement (natural language intent)
@@ -266,10 +278,12 @@ The ONLY experimental variable is **prompt strategy**. All other factors are fix
 ### Evaluated Strategies (in `prompts/` directory)
 
 Stored in:
+
 - `prompts/structure_prompts.json` - strategies for structure task
 - `prompts/business_prompts.json` - strategies for business logic task
 
 Each file contains a `strategies` dict:
+
 ```json
 {
   "strategies": {
@@ -281,6 +295,7 @@ Each file contains a `strategies` dict:
 ```
 
 Examples:
+
 1. **Naive**: Single instruction, no decomposition
 2. **Structured**: Explicit task steps, clear constraints
 3. **Incremental/CoT**: Explicit reasoning phases, reasoning hidden from output
@@ -292,6 +307,7 @@ Examples:
 ### Structure Evaluation
 
 **Matching Algorithm**:
+
 1. For each annotated structure, find best-matching inferred structure by line overlap
 2. If no overlap → MISSING
 3. If overlap found:
@@ -307,6 +323,7 @@ Examples:
 ### Business Logic Evaluation
 
 **Matching Algorithm**:
+
 1. For each annotated rule, find best-matching inferred rule by evidence line overlap
 2. If no overlap → MISSING (rule not detected)
 3. If overlap found:
@@ -316,6 +333,116 @@ Examples:
 **Metrics**: Counts of correct, partial, missing, hallucinated
 
 **Output**: Detailed report with matched pairs, similarities, and source line evidence
+
+---
+
+### Result Storage & Aggregation
+
+After all experiments complete, the pipeline stores results in three formats:
+
+**1. Detailed Results** (`experiments/results/results.json`)
+
+- Full `EvaluationResult` objects for every inference
+- Includes model, strategy, task, file, validation status
+- LLM output and ground truth annotations
+- Per-item classifications (correct/partial/missing/hallucinated)
+- Link to source evidence with similarity scores
+
+**Example entry**:
+
+```json
+{
+  "model": "gpt-4",
+  "prompt_strategy": "structured",
+  "task": "structure",
+  "file": "VSCBEX01.cbl",
+  "validation_status": "valid",
+  "metrics": {
+    "correct": 5,
+    "partial": 1,
+    "missing": 2,
+    "hallucinated": 0,
+    "completeness": 0.70,
+    "hallucination_rate": 0.0
+  },
+  "details": [
+    {
+      "predicted": "PROCEDURE DIVISION",
+      "ground_truth": "PROCEDURE DIVISION",
+      "classification": "correct",
+      "similarity_score": 1.0
+    },
+    ...
+  ]
+}
+```
+
+**2. CSV Summary** (`experiments/results/results_summary.csv`)
+
+- Tabular format for spreadsheet analysis
+- One row per result
+- Columns: model, strategy, task, file, validation_status, correct, partial, missing, hallucinated, completeness, hallucination_rate
+- Ideal for pivot tables and comparative visualization
+
+**3. Aggregate Statistics** (`experiments/results/summary.json`)
+
+- Global metrics across all runs
+- Per-model aggregates (total correct/partial/missing/hallucinated)
+- Per-task aggregates
+- Overall precision, recall, and hallucination rate
+
+**Example**:
+
+```json
+{
+  "by_model": {
+    "gpt-4": {
+      "correct": 45,
+      "partial": 8,
+      "missing": 12,
+      "hallucinated": 3,
+      "precision": 0.857
+    },
+    ...
+  },
+  "by_task": {
+    "structure": {
+      "correct": 50,
+      "partial": 7,
+      ...
+    },
+    ...
+  },
+  "global": {
+    "total_correct": 95,
+    "overall_precision": 0.853,
+    "overall_recall": 0.847,
+    "overall_hallucination_rate": 0.022
+  }
+}
+```
+
+---
+
+### Logging & Debugging
+
+Console output and detailed log are captured separately:
+
+- **Console** (`stdout`): Progress indicators and summary results
+- **Log File** (`experiments/run_log.txt`): Timestamped, indented trace of all operations
+
+Log structure:
+
+```
+2025-01-15T14:32:01 [INFO] PIPELINE STARTING
+2025-01-15T14:32:02 [INFO]   Processing program: VSCBEX01.cbl
+2025-01-15T14:32:03 [INFO]     Task: structure / Strategy: incremental
+2025-01-15T14:32:04 [INFO]       Model: gpt-4
+2025-01-15T14:32:05 [INFO]         LLM call started
+2025-01-15T14:32:08 [INFO]         JSON extraction: success
+2025-01-15T14:32:08 [INFO]         Schema validation: success
+2025-01-15T14:32:08 [INFO]         Evaluation complete - correct=5, partial=1, missing=2, hallucinated=0
+```
 
 ---
 
@@ -377,6 +504,7 @@ Pipeline stages are logged with indentation for easy readability:
 ```
 
 This hierarchical logging helps identify:
+
 - Which programs are being processed
 - Which strategies are being tested
 - Which models are being evaluated
@@ -387,6 +515,7 @@ This hierarchical logging helps identify:
 
 Results are appended to `experiments/log.jsonl` as JSON lines.
 Each record includes:
+
 - Timestamp
 - Program name
 - Task (structure / business)
@@ -406,13 +535,15 @@ Used for comparative analysis across strategies and models.
 Models like Claude and Gemini wrap JSON in extra text:
 
 **Common Patterns**:
-```
+
+````
 Sure! Here's the structure:
 ```json
 {...}
-```
+````
 
 Or with markdown:
+
 ```
 <div>
 {"program_name": "..."}
@@ -420,6 +551,7 @@ Or with markdown:
 ```
 
 Or with explanation:
+
 ```
 Based on my analysis, here are the structures:
 {
@@ -429,12 +561,14 @@ Based on my analysis, here are the structures:
 ```
 
 **Extraction Strategy**:
+
 1. Search for markdown code blocks with language identifier (`\`\`\`json`)
 2. Extract substring from first `{` to last `}`
 3. Parse extracted substring as JSON
 4. Log failures for manual review
 
 **Why this is necessary**:
+
 - LLMs don't always return pure JSON
 - Markdown wrappers are common in casual responses
 - Simple substring extraction is robust and debuggable
@@ -569,6 +703,7 @@ The `experiments/log.jsonl` file contains one JSON record per model-task-strateg
 - **hallucinated**: Inferred items without annotation matches
 
 **Success Metrics**:
+
 - High `correct`, low `missing` → Good recall
 - Low `hallucinated` → High precision
 - Consistent across models/strategies → Stable extraction
@@ -615,10 +750,10 @@ production performance.
 
 ## 21. Status
 
-**Version**: 1.0  
-**Date**: March 2026  
-**Status**: Experimental research framework  
-**Stability**: Stable API, ongoing evaluation  
+**Version**: 1.0
+**Date**: March 2026
+**Status**: Experimental research framework
+**Stability**: Stable API, ongoing evaluation
 
 This repository is suitable for research use and comparative studies.
 Production use requires additional safety, performance, and scale engineering.

@@ -1,0 +1,103 @@
+============================================================
+COBOL Converter Experiment Log
+Started: 2026-03-15T15:33:40.835188Z
+============================================================
+
+[2026-03-15 15:33:40] INFO: PIPELINE STARTING
+  [2026-03-15 15:33:55] INFO: Task: structure | Strategy: naive_1
+    [2026-03-15 15:33:56] INFO: Model: OPEN_AI
+      [2026-03-15 15:33:56] INFO: Calling LLM...
+      [2026-03-15 15:34:15] INFO: JSON extraction: SUCCESS
+      [2026-03-15 15:34:15] INFO: Schema validation: VALID
+      [2026-03-15 15:34:15] INFO: Evaluation complete - correct=3 partial=10 missing=0 hallucinated=16
+  [2026-03-15 15:34:15] INFO: Task: structure | Strategy: naive_2
+    [2026-03-15 15:34:16] INFO: Model: OPEN_AI
+      [2026-03-15 15:34:16] INFO: Calling LLM...
+      [2026-03-15 15:34:28] INFO: JSON extraction: SUCCESS
+      [2026-03-15 15:34:28] INFO: Schema validation: VALID
+      [2026-03-15 15:34:28] INFO: Evaluation complete - correct=2 partial=10 missing=1 hallucinated=12
+  [2026-03-15 15:34:28] INFO: Task: structure | Strategy: structured_1
+    [2026-03-15 15:34:28] INFO: Model: OPEN_AI
+      [2026-03-15 15:34:28] INFO: Calling LLM...
+      [2026-03-15 15:34:47] INFO: JSON extraction: SUCCESS
+      [2026-03-15 15:34:47] INFO: Schema validation: VALID
+      [2026-03-15 15:34:47] INFO: Evaluation complete - correct=3 partial=9 missing=1 hallucinated=19
+  [2026-03-15 15:34:47] INFO: Task: structure | Strategy: structured_2
+    [2026-03-15 15:34:47] INFO: Model: OPEN_AI
+      [2026-03-15 15:34:47] INFO: Calling LLM...
+      [2026-03-15 15:35:00] INFO: JSON extraction: SUCCESS
+      [2026-03-15 15:35:00] INFO: Schema validation: VALID
+      [2026-03-15 15:35:00] INFO: Evaluation complete - correct=3 partial=9 missing=1 hallucinated=16
+  [2026-03-15 15:35:00] INFO: Task: structure | Strategy: cot_hidden_1
+    [2026-03-15 15:35:01] INFO: Model: OPEN_AI
+      [2026-03-15 15:35:01] INFO: Calling LLM...
+      [2026-03-15 15:35:15] INFO: JSON extraction: SUCCESS
+      [2026-03-15 15:35:15] INFO: Schema validation: VALID
+      [2026-03-15 15:35:15] INFO: Evaluation complete - correct=3 partial=9 missing=1 hallucinated=14
+  [2026-03-15 15:35:15] INFO: Task: structure | Strategy: cot_hidden_2
+    [2026-03-15 15:35:16] INFO: Model: OPEN_AI
+      [2026-03-15 15:35:16] INFO: Calling LLM...
+      [2026-03-15 15:35:26] INFO: JSON extraction: SUCCESS
+      [2026-03-15 15:35:26] INFO: Schema validation: VALID
+      [2026-03-15 15:35:26] INFO: Evaluation complete - correct=3 partial=10 missing=0 hallucinated=9
+  [2026-03-15 15:35:26] INFO: Task: structure | Strategy: structure_aware_1
+    [2026-03-15 15:35:26] INFO: Model: OPEN_AI
+      [2026-03-15 15:35:26] INFO: Calling LLM...
+      [2026-03-15 15:35:40] INFO: JSON extraction: SUCCESS
+      [2026-03-15 15:35:40] INFO: Schema validation: VALID
+      [2026-03-15 15:35:40] INFO: Evaluation complete - correct=2 partial=10 missing=1 hallucinated=11
+  [2026-03-15 15:35:40] INFO: Task: structure | Strategy: structure_aware_2
+    [2026-03-15 15:35:40] INFO: Model: OPEN_AI
+      [2026-03-15 15:35:40] INFO: Calling LLM...
+      [2026-03-15 15:35:51] INFO: JSON extraction: SUCCESS
+      [2026-03-15 15:35:51] INFO: Schema validation: VALID
+      [2026-03-15 15:35:51] INFO: Evaluation complete - correct=3 partial=10 missing=0 hallucinated=9
+  [2026-03-15 15:35:57] INFO: Task: business | Strategy: naive_1
+    [2026-03-15 15:35:57] INFO: Model: OPEN_AI
+      [2026-03-15 15:35:57] INFO: Calling LLM...
+      [2026-03-15 15:36:06] INFO: JSON extraction: SUCCESS
+      [2026-03-15 15:36:06] INFO: Schema validation: VALID
+      [2026-03-15 15:36:06] INFO: Evaluation complete - correct=0 partial=4 missing=6 hallucinated=1
+  [2026-03-15 15:36:06] INFO: Task: business | Strategy: naive_2
+    [2026-03-15 15:36:07] INFO: Model: OPEN_AI
+      [2026-03-15 15:36:07] INFO: Calling LLM...
+      [2026-03-15 15:36:17] INFO: JSON extraction: SUCCESS
+      [2026-03-15 15:36:17] INFO: Schema validation: VALID
+      [2026-03-15 15:36:17] INFO: Evaluation complete - correct=0 partial=1 missing=9 hallucinated=4
+  [2026-03-15 15:36:17] INFO: Task: business | Strategy: structured_1
+    [2026-03-15 15:36:17] INFO: Model: OPEN_AI
+      [2026-03-15 15:36:17] INFO: Calling LLM...
+      [2026-03-15 15:36:30] INFO: JSON extraction: SUCCESS
+      [2026-03-15 15:36:30] INFO: Schema validation: VALID
+      [2026-03-15 15:36:30] INFO: Evaluation complete - correct=0 partial=6 missing=4 hallucinated=2
+  [2026-03-15 15:36:30] INFO: Task: business | Strategy: structured_2
+    [2026-03-15 15:36:30] INFO: Model: OPEN_AI
+      [2026-03-15 15:36:30] INFO: Calling LLM...
+      [2026-03-15 15:36:39] INFO: JSON extraction: SUCCESS
+      [2026-03-15 15:36:39] INFO: Schema validation: VALID
+      [2026-03-15 15:36:39] INFO: Evaluation complete - correct=0 partial=6 missing=4 hallucinated=3
+  [2026-03-15 15:36:39] INFO: Task: business | Strategy: cot_hidden_1
+    [2026-03-15 15:36:40] INFO: Model: OPEN_AI
+      [2026-03-15 15:36:40] INFO: Calling LLM...
+      [2026-03-15 15:36:47] INFO: JSON extraction: SUCCESS
+      [2026-03-15 15:36:47] INFO: Schema validation: VALID
+      [2026-03-15 15:36:47] INFO: Evaluation complete - correct=1 partial=6 missing=3 hallucinated=1
+  [2026-03-15 15:36:47] INFO: Task: business | Strategy: cot_hidden_2
+    [2026-03-15 15:36:47] INFO: Model: OPEN_AI
+      [2026-03-15 15:36:47] INFO: Calling LLM...
+      [2026-03-15 15:36:53] INFO: JSON extraction: SUCCESS
+      [2026-03-15 15:36:53] INFO: Schema validation: VALID
+      [2026-03-15 15:36:53] INFO: Evaluation complete - correct=0 partial=2 missing=8 hallucinated=2
+  [2026-03-15 15:36:53] INFO: Task: business | Strategy: structure_aware_1
+    [2026-03-15 15:36:53] INFO: Model: OPEN_AI
+      [2026-03-15 15:36:53] INFO: Calling LLM...
+      [2026-03-15 15:36:59] INFO: JSON extraction: SUCCESS
+      [2026-03-15 15:36:59] INFO: Schema validation: VALID
+      [2026-03-15 15:36:59] INFO: Evaluation complete - correct=0 partial=2 missing=8 hallucinated=2
+  [2026-03-15 15:36:59] INFO: Task: business | Strategy: structure_aware_2
+    [2026-03-15 15:36:59] INFO: Model: OPEN_AI
+      [2026-03-15 15:36:59] INFO: Calling LLM...
+      [2026-03-15 15:37:04] INFO: JSON extraction: SUCCESS
+      [2026-03-15 15:37:04] INFO: Schema validation: VALID
+      [2026-03-15 15:37:04] INFO: Evaluation complete - correct=0 partial=1 missing=9 hallucinated=3
+[2026-03-15 15:37:05] INFO: PIPELINE COMPLETE
