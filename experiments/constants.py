@@ -6,41 +6,41 @@ MODEL_CONSTANTS = {
             "api_key": os.getenv("OPENROUTER_API_KEY"),
             "model": "openai/gpt-4.1-mini",
             "temperature": 0.7,
-            "max_tokens": 4096,
+            "max_tokens": 8192,
             "max_retries": 2,
         },
         {
             "api_key": os.getenv("OPENROUTER_API_KEY"),
-            "model": "openai/gpt-4o",
+            "model": "openai/gpt-4o-mini",
             "temperature": 0.7,
-            "max_tokens": 4096,
+            "max_tokens": 8192,
             "max_retries": 2,
         },
     ],
     "LLAMA": [
         {
             "api_key": os.getenv("OPENROUTER_API_KEY"),
-            "model": "meta-llama/llama-3.1-405b",
+            "model": "meta-llama/llama-3.1-8b-instruct",
             "temperature": 0.7,
-            "max_tokens": 4096,
+            "max_tokens": 8192,
             "max_retries": 2,
         }
     ],
     "GEMINI": [
         {
             "api_key": os.getenv("OPENROUTER_API_KEY"),
-            "model": "google/gemini-flash-1.5",
+            "model": "google/gemini-3-flash-preview",
             "temperature": 0.7,
-            "max_tokens": 4096,
+            "max_tokens": 8192,
             "max_retries": 2,
         }
     ],
     "CLAUDE": [
         {
             "api_key": os.getenv("OPENROUTER_API_KEY"),
-            "model": "anthropic/claude-3.5-haiku",
+            "model": "anthropic/claude-sonnet-4.6",
             "temperature": 0.7,
-            "max_tokens": 4096,
+            "max_tokens": 8192,
             "max_retries": 2,
         }
     ],
@@ -49,7 +49,7 @@ MODEL_CONSTANTS = {
             "api_key": os.getenv("OPENROUTER_API_KEY"),
             "model": "llama4:latest",
             "temperature": 0.7,
-            "max_tokens": 4096,
+            "max_tokens": 8192,
             "max_retries": 2,
         }
     ],
@@ -62,4 +62,3 @@ FILE_PATHS = {
     "BUSINESS_LOGIC_DIR": "assets/raw/Business Logic",
     "COBOL_PROGRAM_DIR": "assets/raw/COBOL Program",
 }
-

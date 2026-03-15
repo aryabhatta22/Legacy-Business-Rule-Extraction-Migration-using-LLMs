@@ -4,6 +4,23 @@ Compare inferred structure (StructureOutput-like) against annotated structures
 found in the assets `Annotated data` JSON files. The annotated format in this
 repository uses 'lines' arrays and ids; this evaluator matches by line-range
 overlap and simple name token overlap.
+
+Evaluation Methodology:
+  1. Extract structures from both inferred and annotated outputs
+  2. Match annotated structures to inferred structures using:
+     - Line range overlap (number of overlapping lines)
+     - Name token overlap (word-level similarity)
+  3. Classify each annotated structure as:
+     - CORRECT: Found with high name similarity (>= 0.5 token overlap)
+     - PARTIAL: Found with moderate name similarity (< 0.5 token overlap)
+     - MISSING: Not found in inferred output (no line overlap)
+  4. Classify each inferred structure not matched as:
+     - HALLUCINATED: Present in inferred but not in annotated
+  5. Return summary counts and detailed matches for manual review
+
+This approach avoids exact string matching, allowing for paraphrasing and
+different naming conventions while still ensuring consistency through line-level
+grounding. Manual review is recommended for PARTIAL and edge cases.
 """
 from typing import Dict, Any, List
 
@@ -13,6 +30,12 @@ def _range_overlap(a: List[int], b: List[int]) -> int:
 
     Each range is expected to be a two-element list [start, end]. If a list
     of multiple lines is passed, fall back to set intersection.
+
+    Line overlap is used as a robust matching metric because:
+    - Line numbers are stable and immutable
+    - They ground inferred structures to source code locations
+    - Overlap indicates the structures refer to the same code region
+    - Matching by line overlap is more resilient than exact name matching
     """
     try:
         a0, a1 = int(a[0]), int(a[1])
@@ -28,6 +51,16 @@ def _range_overlap(a: List[int], b: List[int]) -> int:
 
 
 def _token_overlap_ratio(a: str, b: str) -> float:
+    """Return token-level similarity score between two strings.
+
+    This metric is used for name similarity matching because:
+    - Exact string match is too strict (paraphrasing is expected)
+    - Token overlap captures semantic similarity without requiring exact wording
+    - It's robust to capitalization and minor variations
+    - Threshold of 0.5 (50% overlap) indicates meaningful name similarity
+
+    The score is computed as: |intersection| / max(|tokens_a|, |tokens_b|)
+    """
     at = set([t.lower() for t in a.split() if t.isalnum()])
     bt = set([t.lower() for t in b.split() if t.isalnum()])
     if not at or not bt:
@@ -40,6 +73,19 @@ def evaluate_structure_base(inferred: Dict[str, Any], annotated: Dict[str, Any])
     """Compare inferred StructureOutput-like dict with annotated dict.
 
     Returns a report dict with counts and lists of matched/missing/hallucinated.
+
+    Matching Algorithm:
+    1. For each annotated structure, find the best-matching inferred structure
+       based on line range overlap
+    2. If no match found -> MISSING
+    3. If match found:
+       - Check name token similarity (>= 0.5 -> CORRECT, < 0.5 -> PARTIAL)
+    4. Any inferred structure not matched -> HALLUCINATED
+
+    This design ensures:
+    - Annotated structures are the ground truth (recall-oriented)
+    - Line overlap provides robust spatial grounding
+    - Name similarity allows for paraphrasing while catching real errors
     """
     report = {
         "correct": [],

@@ -29,7 +29,7 @@
        INPUT-OUTPUT SECTION.
        FILE-CONTROL.
            SELECT INFile
-           ASSIGN TO "../idata/customer.idat"       
+           ASSIGN TO "../idata/customer.idat"
            ORGANIZATION IS INDEXED
            RECORD KEY IS INFile-Cust-ID
            ACCESS MODE IS SEQUENTIAL
@@ -90,6 +90,6 @@
                  DISPLAY "File Status: " WS-INFile-Status
                  PERFORM 3000-End-Job
                  MOVE 8 TO RETURN-CODE
-                 GOBACK 
+                 GOBACK
               END-IF
            END-IF.
