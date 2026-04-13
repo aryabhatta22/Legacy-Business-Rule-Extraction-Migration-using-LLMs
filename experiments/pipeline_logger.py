@@ -59,6 +59,10 @@ class PipelineLogger:
         except IOError as e:
             print(f"[ERROR] Failed to write to log file: {e}")
 
+    def info(self, message: str, indent: int = 0):
+        """Log a standard informational message."""
+        self.log(message, level="INFO", indent=indent)
+
     def pipeline_start(self):
         """Log pipeline start."""
         self.log("PIPELINE STARTING", level="INFO", indent=0)
@@ -70,6 +74,10 @@ class PipelineLogger:
     def program_start(self, program_name: str):
         """Log program processing start."""
         self.log(f"Processing program: {program_name}", level="INFO", indent=0)
+
+    def programs_loaded(self, count: int):
+        """Log how many programs were loaded for the run."""
+        self.log(f"Loaded {count} COBOL programs", level="INFO", indent=0)
 
     def task_start(self, task: str, strategy: str):
         """Log task start."""
@@ -83,10 +91,25 @@ class PipelineLogger:
         """Log LLM call start."""
         self.log("Calling LLM...", level="INFO", indent=3)
 
-    def json_extraction(self, success: bool):
+    def llm_response_received(self):
+        """Log that a raw LLM response was received."""
+        self.log("Raw LLM response received", level="INFO", indent=3)
+
+    def llm_retry(self, attempt: int, max_retries: int, sleep_for: float):
+        """Log retry scheduling after a failed attempt."""
+        self.log(
+            f"Retrying after {sleep_for:.2f}s (next attempt {attempt}/{max_retries})",
+            level="WARN",
+            indent=3,
+        )
+
+    def json_extraction(self, success: bool, reason: Optional[str] = None):
         """Log JSON extraction result."""
         status = "SUCCESS" if success else "FAILED"
-        self.log(f"JSON extraction: {status}", level="INFO", indent=3)
+        message = f"JSON extraction: {status}"
+        if reason:
+            message += f" ({reason})"
+        self.log(message, level="INFO", indent=3)
 
     def schema_validation(self, success: bool, reason: Optional[str] = None):
         """Log schema validation result."""
@@ -106,6 +129,10 @@ class PipelineLogger:
             f"hallucinated={metrics.get('hallucinated', 0)}"
         )
         self.log(msg, level="INFO", indent=3)
+
+    def artifact_written(self, path: str):
+        """Log that a result artifact was written."""
+        self.log(f"Wrote artifact: {path}", level="INFO", indent=1)
 
     def error(self, message: str, indent: int = 3):
         """Log error message."""

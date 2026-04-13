@@ -1,42 +1,44 @@
-"""Simple structure evaluation utils.
+"""Structure evaluation helpers.
 
-Compare inferred structure (StructureOutput-like) against annotated structures
-found in the assets `Annotated data` JSON files. The annotated format in this
-repository uses 'lines' arrays and ids; this evaluator matches by line-range
-overlap and simple name token overlap.
-
-Evaluation Methodology:
-  1. Extract structures from both inferred and annotated outputs
-  2. Match annotated structures to inferred structures using:
-     - Line range overlap (number of overlapping lines)
-     - Name token overlap (word-level similarity)
-  3. Classify each annotated structure as:
-     - CORRECT: Found with high name similarity (>= 0.5 token overlap)
-     - PARTIAL: Found with moderate name similarity (< 0.5 token overlap)
-     - MISSING: Not found in inferred output (no line overlap)
-  4. Classify each inferred structure not matched as:
-     - HALLUCINATED: Present in inferred but not in annotated
-  5. Return summary counts and detailed matches for manual review
-
-This approach avoids exact string matching, allowing for paraphrasing and
-different naming conventions while still ensuring consistency through line-level
-grounding. Manual review is recommended for PARTIAL and edge cases.
+Matching is intentionally simple and reproducible:
+1. Normalize inferred and annotated structure records.
+2. Only consider candidates with compatible types and positive line overlap.
+3. Match each annotated item to at most one inferred item.
+4. Use name similarity only as a tie-breaker and for correct/partial labeling.
 """
-from typing import Dict, Any, List
+
+from typing import Dict, Any, List, Set
+import re
 
 
-def _range_overlap(a: List[int], b: List[int]) -> int:
-    """Return number of overlapping lines between two inclusive ranges.
+STRUCTURE_TYPE_MAP = {
+    "DIVISION": {"METADATA", "CONFIGURATION", "DATA"},
+    "SECTION": {"FILE_DEFINITION", "STORAGE", "DECLARATION"},
+    "PARAGRAPH": {
+        "ENTRY_POINT",
+        "INITIALIZATION",
+        "PROCESSING",
+        "TERMINATION",
+        "DATA_DEFINITION",
+        "DATA_INITIALIZATION",
+        "DATA_MODIFICATION",
+        "DATA_TRANSFORMATION",
+        "I_O",
+        "FILE_IO",
+    },
+    "LOOP": {"LOOP", "CONTROL_FLOW"},
+    "FILE_OP": {"FILE_DEFINITION", "FILE_IO", "I_O"},
+    "CONDITIONAL": {"CONTROL_FLOW"},
+}
 
-    Each range is expected to be a two-element list [start, end]. If a list
-    of multiple lines is passed, fall back to set intersection.
 
-    Line overlap is used as a robust matching metric because:
-    - Line numbers are stable and immutable
-    - They ground inferred structures to source code locations
-    - Overlap indicates the structures refer to the same code region
-    - Matching by line overlap is more resilient than exact name matching
-    """
+def _normalize_tokens(text: str) -> Set[str]:
+    """Tokenize names using lowercase alphanumeric chunks."""
+    return set(re.findall(r"[a-z0-9]+", (text or "").lower()))
+
+
+def _line_overlap(a: List[int], b: List[int]) -> int:
+    """Return number of overlapping lines for ranges or explicit line lists."""
     try:
         a0, a1 = int(a[0]), int(a[1])
         b0, b1 = int(b[0]), int(b[1])
@@ -44,49 +46,45 @@ def _range_overlap(a: List[int], b: List[int]) -> int:
         end = min(a1, b1)
         return max(0, end - start + 1)
     except Exception:
-        # fall back: treat lists as explicit line numbers
-        sa = set(a)
-        sb = set(b)
-        return len(sa & sb)
+        return len(set(a or []) & set(b or []))
 
 
 def _token_overlap_ratio(a: str, b: str) -> float:
-    """Return token-level similarity score between two strings.
-
-    This metric is used for name similarity matching because:
-    - Exact string match is too strict (paraphrasing is expected)
-    - Token overlap captures semantic similarity without requiring exact wording
-    - It's robust to capitalization and minor variations
-    - Threshold of 0.5 (50% overlap) indicates meaningful name similarity
-
-    The score is computed as: |intersection| / max(|tokens_a|, |tokens_b|)
-    """
-    at = set([t.lower() for t in a.split() if t.isalnum()])
-    bt = set([t.lower() for t in b.split() if t.isalnum()])
+    """Return normalized token overlap for structure names."""
+    at = _normalize_tokens(a)
+    bt = _normalize_tokens(b)
     if not at or not bt:
         return 0.0
-    inter = at & bt
-    return len(inter) / max(len(at), len(bt))
+    return len(at & bt) / max(len(at), len(bt))
 
 
-def evaluate_structure_base(inferred: Dict[str, Any], annotated: Dict[str, Any]) -> Dict[str, Any]:
-    """Compare inferred StructureOutput-like dict with annotated dict.
+def _normalize_structure(item: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize structure records from either schema output or annotation JSON."""
+    return {
+        "id": item.get("structure_id") or item.get("id"),
+        "type": (item.get("structure_type") or item.get("type") or "").upper(),
+        "name": item.get("name", ""),
+        "lines": item.get("line_range") or item.get("lines") or [],
+        "parent_id": item.get("parent_id"),
+        "raw": item,
+    }
 
-    Returns a report dict with counts and lists of matched/missing/hallucinated.
 
-    Matching Algorithm:
-    1. For each annotated structure, find the best-matching inferred structure
-       based on line range overlap
-    2. If no match found -> MISSING
-    3. If match found:
-       - Check name token similarity (>= 0.5 -> CORRECT, < 0.5 -> PARTIAL)
-    4. Any inferred structure not matched -> HALLUCINATED
+def _type_compatible(inferred_type: str, annotated_type: str) -> bool:
+    """Return whether the inferred type can represent the annotated type."""
+    inferred_type = (inferred_type or "").upper()
+    annotated_type = (annotated_type or "").upper()
+    if not inferred_type or not annotated_type:
+        return False
+    if inferred_type == annotated_type:
+        return True
+    return annotated_type in STRUCTURE_TYPE_MAP.get(inferred_type, set())
 
-    This design ensures:
-    - Annotated structures are the ground truth (recall-oriented)
-    - Line overlap provides robust spatial grounding
-    - Name similarity allows for paraphrasing while catching real errors
-    """
+
+def evaluate_structure_base(
+    inferred: Dict[str, Any], annotated: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Compare inferred structure output with annotated structure ground truth."""
     report = {
         "correct": [],
         "partial": [],
@@ -94,98 +92,117 @@ def evaluate_structure_base(inferred: Dict[str, Any], annotated: Dict[str, Any])
         "hallucinated": [],
     }
 
-    inferred_structs = []
-    # normalize inferred structure list
-    for s in inferred.get("structures", []):
-        lr = s.get("line_range") or s.get("lines") or []
-        inferred_structs.append({
-            "id": s.get("structure_id") or s.get("id"),
-            "name": s.get("name"),
-            "lines": lr,
-            "raw": s,
-        })
-
-    annotated_structs = []
-    for s in annotated.get("structures", []):
-        annotated_structs.append({
-            "id": s.get("id"),
-            "name": s.get("name"),
-            "lines": s.get("lines") or s.get("line_range") or [],
-            "raw": s,
-        })
+    inferred_structs = [
+        _normalize_structure(item) for item in inferred.get("structures", [])
+    ]
+    annotated_structs = [
+        _normalize_structure(item) for item in annotated.get("structures", [])
+    ]
 
     matched_inferred = set()
 
-    # match annotated -> inferred
-    for a in annotated_structs:
-        best = None
+    for annotated_item in annotated_structs:
+        best_index = None
+        best_candidate = None
         best_overlap = 0
-        for idx, inf in enumerate(inferred_structs):
-            overlap = _range_overlap(a["lines"], inf["lines"]) if a["lines"] and inf["lines"] else 0
-            if overlap > best_overlap:
+        best_name_score = -1.0
+
+        for idx, inferred_item in enumerate(inferred_structs):
+            if idx in matched_inferred:
+                continue
+            if not _type_compatible(inferred_item["type"], annotated_item["type"]):
+                continue
+
+            overlap = _line_overlap(annotated_item["lines"], inferred_item["lines"])
+            if overlap <= 0:
+                continue
+
+            name_score = _token_overlap_ratio(
+                annotated_item.get("name", ""),
+                inferred_item.get("name", ""),
+            )
+            if overlap > best_overlap or (
+                overlap == best_overlap and name_score > best_name_score
+            ):
+                best_index = idx
+                best_candidate = inferred_item
                 best_overlap = overlap
-                best = (idx, inf, overlap)
+                best_name_score = name_score
 
-        if best is None or best_overlap == 0:
-            report["missing"].append(a)
+        if best_candidate is None:
+            report["missing"].append(
+                {
+                    "annotated": annotated_item,
+                    "inferred": None,
+                    "overlap": 0,
+                    "name_score": 0.0,
+                    "status": "missing",
+                }
+            )
+            continue
+
+        matched_inferred.add(best_index)
+        match_record = {
+            "annotated": annotated_item,
+            "inferred": best_candidate,
+            "overlap": best_overlap,
+            "name_score": round(best_name_score, 4),
+        }
+        if best_name_score >= 0.5:
+            match_record["status"] = "correct"
+            report["correct"].append(match_record)
         else:
-            idx, inf, overlap = best
-            matched_inferred.add(idx)
-            name_score = _token_overlap_ratio(a.get("name", ""), inf.get("name", ""))
-            if name_score >= 0.5:
-                report["correct"].append({"annotated": a, "inferred": inf, "overlap": overlap, "name_score": name_score})
-            else:
-                report["partial"].append({"annotated": a, "inferred": inf, "overlap": overlap, "name_score": name_score})
+            match_record["status"] = "partial"
+            report["partial"].append(match_record)
 
-    # any inferred not matched are hallucinated
-    for idx, inf in enumerate(inferred_structs):
+    for idx, inferred_item in enumerate(inferred_structs):
         if idx not in matched_inferred:
-            report["hallucinated"].append(inf)
+            report["hallucinated"].append(
+                {
+                    "annotated": None,
+                    "inferred": inferred_item,
+                    "overlap": 0,
+                    "name_score": 0.0,
+                    "status": "hallucinated",
+                }
+            )
 
-    # totals
-    report_summary = {k: len(v) for k, v in report.items()}
-    return {"summary": report_summary, "details": report}
+    summary = {key: len(items) for key, items in report.items()}
+    return {"summary": summary, "details": report}
 
 
 def evaluate_structure(inferred: Dict[str, Any], annotated: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Enhanced evaluator that includes:
-    1. Base counts (Correct/Partial/Missing/Hallucinated)
-    2. Completeness & Hallucination Rate
-    3. Structural Fidelity (Hierarchy check)
-    """
-    # 1. Run your original logic to get the base report
-    # (Assuming the original logic you provided is available as 'base_report')
+    """Return structure evaluation counts plus derived metrics."""
     base_report = evaluate_structure_base(inferred, annotated)
     summary = base_report["summary"]
-    details = base_report["details"]
-
-    # --- 6.2 Completeness Calculation ---
-    # Formula: (Correct + Partial) / Total Ground Truth
-    total_gt = summary["correct"] + summary["partial"] + summary["missing"]
-    completeness = (summary["correct"] + summary["partial"]) / total_gt if total_gt > 0 else 0
-
-    # --- 6.3 Hallucination Rate Calculation ---
-    # Formula: Hallucinated / Total Generated
-    total_gen = summary["correct"] + summary["partial"] + summary["hallucinated"]
-    hallucination_rate = summary["hallucinated"] / total_gen if total_gen > 0 else 0
-
-    # --- 6.4 Structural Fidelity ---
-    # We check if 'parent_id' is used correctly to link Paragraphs to Sections/Divisions
     inferred_structs = inferred.get("structures", [])
-    hierarchy_links = [s for s in inferred_structs if s.get("parent_id") is not None]
 
-    # Fidelity is the ratio of items correctly placed in a hierarchy
-    structural_fidelity = len(hierarchy_links) / len(inferred_structs) if inferred_structs else 0
+    total_ground_truth = summary["correct"] + summary["partial"] + summary["missing"]
+    total_predicted = summary["correct"] + summary["partial"] + summary["hallucinated"]
 
-    # Update Summary with new metrics
+    completeness = (
+        (summary["correct"] + summary["partial"]) / total_ground_truth
+        if total_ground_truth > 0
+        else 0.0
+    )
+    hallucination_rate = (
+        summary["hallucinated"] / total_predicted if total_predicted > 0 else 0.0
+    )
+
+    hierarchy_links = [
+        item for item in inferred_structs if item.get("parent_id") is not None
+    ]
+    structural_fidelity = (
+        len(hierarchy_links) / len(inferred_structs) if inferred_structs else 0.0
+    )
+
     enhanced_summary = {
         **summary,
+        "total_ground_truth": total_ground_truth,
+        "total_predicted": total_predicted,
         "completeness": round(completeness, 4),
         "hallucination_rate": round(hallucination_rate, 4),
         "structural_fidelity": round(structural_fidelity, 4),
-        "total_gt": total_gt,
-        "total_generated": total_gen
     }
 
-    return {"summary": enhanced_summary, "details": details}
+    return {"summary": enhanced_summary, "details": base_report["details"]}

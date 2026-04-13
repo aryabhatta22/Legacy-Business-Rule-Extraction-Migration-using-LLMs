@@ -1,43 +1,22 @@
-"""Simple business-rule evaluation utils.
+"""Business-rule evaluation helpers.
 
-Compare inferred BusinessLogicOutput-like dicts against annotated business rules.
-Matching is performed primarily by overlap of source line ranges and simple
-token overlap between rule statements.
-
-Evaluation Methodology:
-  1. Extract business rules from both inferred and annotated outputs
-  2. Match annotated rules to inferred rules using:
-     - Evidence line overlap (lines the rule is grounded in)
-     - Rule statement text overlap (semantic similarity)
-  3. Classify each annotated rule as:
-     - CORRECT: Found with strong statement similarity (>= 0.5 token overlap)
-     - PARTIAL: Found with weaker statement similarity (< 0.5 token overlap)
-     - MISSING: Not found in inferred output (no evidence overlap)
-  4. Classify each inferred rule not matched as:
-     - HALLUCINATED: Present in inferred but not in annotated
-  5. Return summary counts and detailed matches for manual review
-
-Line-based matching (not text-based):
-  Business rules are grounded in source code line numbers (evidence).
-  We match rules by evidence overlap first, then validate semantic alignment
-  using rule statement text. This prevents false negatives due to paraphrasing
-  while ensuring inferred rules are actually grounded in the source code.
-
-Manual review is recommended for PARTIAL matches and hallucinations.
+Rules are matched using a hybrid score:
+1. Positive evidence-line overlap is required.
+2. Token Jaccard similarity on the natural-language rule text breaks ties.
+3. Each inferred rule can match at most one annotated rule.
 """
-from typing import Dict, Any, List
+
+from typing import Dict, Any, List, Set
+import re
+
+
+def _normalize_tokens(text: str) -> Set[str]:
+    """Tokenize rule statements using lowercase alphanumeric chunks."""
+    return set(re.findall(r"[a-z0-9]+", (text or "").lower()))
 
 
 def _lines_overlap(a: List[int], b: List[int]) -> int:
-    """Return number of overlapping lines between evidence ranges.
-
-    Evidence line numbers ground inferred rules to source code.
-    We use line overlap as the primary matching metric because:
-    - Line numbers are immutable and machine-checkable
-    - Rules discussing the same code region have overlapping evidence
-    - This prevents spurious matches based only on text similarity
-    - Inferred rules must be grounded (have evidence) to be valid
-    """
+    """Return the number of overlapping evidence lines."""
     try:
         a0, a1 = int(a[0]), int(a[1])
         b0, b1 = int(b[0]), int(b[1])
@@ -45,86 +24,146 @@ def _lines_overlap(a: List[int], b: List[int]) -> int:
         end = min(a1, b1)
         return max(0, end - start + 1)
     except Exception:
-        return len(set(a) & set(b))
+        return len(set(a or []) & set(b or []))
 
 
-def _token_overlap_ratio(a: str, b: str) -> float:
-    """Return token-level similarity between rule statements.
-
-    This metric validates semantic alignment without requiring exact text match:
-    - Exact text matching is too strict (LLMs may paraphrase)
-    - Token overlap captures semantic intent robustly
-    - Threshold of 0.5 (50%) indicates meaningful similarity
-    - Used as a secondary filter after line overlap matching
-
-    Score: |intersection| / max(|tokens_a|, |tokens_b|)
-    """
-    at = set([t.lower() for t in a.split() if t.isalnum()])
-    bt = set([t.lower() for t in b.split() if t.isalnum()])
+def _token_jaccard_similarity(a: str, b: str) -> float:
+    """Return simple semantic similarity using token Jaccard."""
+    at = _normalize_tokens(a)
+    bt = _normalize_tokens(b)
     if not at or not bt:
         return 0.0
-    inter = at & bt
-    return len(inter) / max(len(at), len(bt))
+    return len(at & bt) / len(at | bt)
+
+
+def _normalize_inferred_rule(item: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize rules from schema output or annotation-shaped dry-run data."""
+    evidence = item.get("evidence", {})
+    source_lines = []
+    if isinstance(evidence, dict):
+        source_lines = evidence.get("source_lines") or []
+
+    if not source_lines:
+        source_lines = item.get("source_lines") or []
+
+    return {
+        "id": item.get("rule_id"),
+        "statement": item.get("rule_statement")
+        or item.get("natural_language_rule")
+        or "",
+        "lines": source_lines,
+        "raw": item,
+    }
+
+
+def _normalize_annotated_rule(item: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize annotated business-rule records."""
+    return {
+        "id": item.get("rule_id"),
+        "statement": item.get("natural_language_rule")
+        or item.get("rule_statement")
+        or "",
+        "lines": item.get("source_lines") or [],
+        "raw": item,
+    }
 
 
 def evaluate_business(inferred: Dict[str, Any], annotated: Dict[str, Any]) -> Dict[str, Any]:
-    """Compare inferred and annotated business rules.
-
-    Matching Algorithm:
-    1. For each annotated rule, find the best-matching inferred rule
-       based on evidence line overlap (rules grounded in same code region)
-    2. If no overlap found -> MISSING (rule not detected by LLM)
-    3. If overlap found:
-       - Check rule statement text similarity (>= 0.5 -> CORRECT, < 0.5 -> PARTIAL)
-    4. Any inferred rule not matched -> HALLUCINATED (LLM made it up)
-
-    Two-level Matching (Line-then-Text):
-    - Primary: Evidence line overlap ensures rules are about the same code
-    - Secondary: Statement text overlap validates semantic alignment
-
-    This design ensures:
-    - Annotated rules are ground truth (recall-oriented evaluation)
-    - Inferred rules must be line-grounded (not just text-similar)
-    - Paraphrasing is allowed (text similarity >= 0.5)
-    - Hallucinations are detected (rules without annotation matches)
-    """
+    """Compare inferred business rules against annotated business rules."""
     report = {"correct": [], "partial": [], "missing": [], "hallucinated": []}
 
-    inferred_rules = []
-    for r in inferred.get("business_rules", []):
-        evidence = r.get("evidence", {})
-        source_lines = evidence.get("source_lines") if isinstance(evidence, dict) else []
-        inferred_rules.append({"id": r.get("rule_id"), "statement": r.get("rule_statement"), "lines": source_lines, "raw": r})
-
-    annotated_rules = []
-    for r in annotated.get("rules", []):
-        annotated_rules.append({"id": r.get("rule_id"), "statement": r.get("natural_language_rule") or r.get("rule_statement"), "lines": r.get("source_lines") or r.get("source_lines"), "raw": r})
+    inferred_rules = [
+        _normalize_inferred_rule(item)
+        for item in (inferred.get("business_rules", []) or inferred.get("rules", []))
+    ]
+    annotated_rules = [
+        _normalize_annotated_rule(item) for item in annotated.get("rules", [])
+    ]
 
     matched_inferred = set()
 
-    for a in annotated_rules:
-        best = None
+    for annotated_item in annotated_rules:
+        best_index = None
+        best_candidate = None
         best_overlap = 0
-        for idx, inf in enumerate(inferred_rules):
-            overlap = _lines_overlap(a["lines"], inf["lines"]) if a["lines"] and inf["lines"] else 0
-            if overlap > best_overlap:
+        best_similarity = -1.0
+
+        for idx, inferred_item in enumerate(inferred_rules):
+            if idx in matched_inferred:
+                continue
+
+            overlap = _lines_overlap(annotated_item["lines"], inferred_item["lines"])
+            if overlap <= 0:
+                continue
+
+            semantic_score = _token_jaccard_similarity(
+                annotated_item["statement"],
+                inferred_item["statement"],
+            )
+            if overlap > best_overlap or (
+                overlap == best_overlap and semantic_score > best_similarity
+            ):
+                best_index = idx
+                best_candidate = inferred_item
                 best_overlap = overlap
-                best = (idx, inf, overlap)
+                best_similarity = semantic_score
 
-        if best is None or best_overlap == 0:
-            report["missing"].append(a)
+        if best_candidate is None:
+            report["missing"].append(
+                {
+                    "annotated": annotated_item,
+                    "inferred": None,
+                    "overlap": 0,
+                    "semantic_score": 0.0,
+                    "status": "missing",
+                }
+            )
+            continue
+
+        matched_inferred.add(best_index)
+        match_record = {
+            "annotated": annotated_item,
+            "inferred": best_candidate,
+            "overlap": best_overlap,
+            "semantic_score": round(best_similarity, 4),
+        }
+        if best_similarity >= 0.5:
+            match_record["status"] = "correct"
+            report["correct"].append(match_record)
         else:
-            idx, inf, overlap = best
-            matched_inferred.add(idx)
-            score = _token_overlap_ratio(a.get("statement", ""), inf.get("statement", ""))
-            if score >= 0.5:
-                report["correct"].append({"annotated": a, "inferred": inf, "overlap": overlap, "text_score": score})
-            else:
-                report["partial"].append({"annotated": a, "inferred": inf, "overlap": overlap, "text_score": score})
+            match_record["status"] = "partial"
+            report["partial"].append(match_record)
 
-    for idx, inf in enumerate(inferred_rules):
+    for idx, inferred_item in enumerate(inferred_rules):
         if idx not in matched_inferred:
-            report["hallucinated"].append(inf)
+            report["hallucinated"].append(
+                {
+                    "annotated": None,
+                    "inferred": inferred_item,
+                    "overlap": 0,
+                    "semantic_score": 0.0,
+                    "status": "hallucinated",
+                }
+            )
 
-    summary = {k: len(v) for k, v in report.items()}
+    summary = {key: len(items) for key, items in report.items()}
+    total_ground_truth = summary["correct"] + summary["partial"] + summary["missing"]
+    total_predicted = summary["correct"] + summary["partial"] + summary["hallucinated"]
+    completeness = (
+        (summary["correct"] + summary["partial"]) / total_ground_truth
+        if total_ground_truth > 0
+        else 0.0
+    )
+    hallucination_rate = (
+        summary["hallucinated"] / total_predicted if total_predicted > 0 else 0.0
+    )
+
+    summary.update(
+        {
+            "total_ground_truth": total_ground_truth,
+            "total_predicted": total_predicted,
+            "completeness": round(completeness, 4),
+            "hallucination_rate": round(hallucination_rate, 4),
+        }
+    )
     return {"summary": summary, "details": report}
