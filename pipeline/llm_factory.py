@@ -7,11 +7,13 @@ from experiments.constants import MODEL_CONSTANTS
 class LLM_Factory:
     @staticmethod
     def get_AllModels() -> List[dict]:
+        # Each key must match an entry in MODEL_CONSTANTS. Families with empty
+        # or missing lists are silently skipped by _getOpenRouterModels.
         return [
             *LLM_Factory._getOpenRouterModels("OPEN_AI"),
+            *LLM_Factory._getOpenRouterModels("GEMMA"),
             *LLM_Factory._getOpenRouterModels("LLAMA"),
-            *LLM_Factory._getOpenRouterModels("GEMINI"),
-            *LLM_Factory._getOpenRouterModels("CLAUDE"),
+            *LLM_Factory._getOpenRouterModels("QWEN"),
             *LLM_Factory._getOpenRouterModels("OLLAMA"),
         ]
 

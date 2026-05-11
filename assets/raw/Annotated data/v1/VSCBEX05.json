@@ -1,0 +1,106 @@
+{
+  "program": "VSCBEX05",
+  "language": "COBOL",
+  "structures": [
+    {
+      "id": "PROGRAM_METADATA",
+      "type": "METADATA",
+      "name": "Program Header",
+      "lines": [1, 30],
+      "description": "Program documentation describing indexed random delete processing, portability notes, and maintenance history."
+    },
+    {
+      "id": "IDENTIFICATION",
+      "type": "DECLARATION",
+      "name": "IDENTIFICATION DIVISION",
+      "lines": [31, 35],
+      "description": "Declares the program name VSCBEX05 and identifies the compilation unit."
+    },
+    {
+      "id": "FILE_CONTROL",
+      "type": "CONFIGURATION",
+      "name": "FILE-CONTROL",
+      "lines": [42, 51],
+      "description": "Defines the indexed customer file, physical assignment, record key, RANDOM access mode, I-O open mode, and file status handling."
+    },
+    {
+      "id": "FILE_DEFINITION",
+      "type": "DATA_DEFINITION",
+      "name": "CUSTFile FD",
+      "lines": [55, 57],
+      "description": "Defines the indexed customer record layout using the shared CUSTOMER copybook."
+    },
+    {
+      "id": "WORKING_STORAGE",
+      "type": "DATA_DEFINITION",
+      "name": "WORKING-STORAGE SECTION",
+      "lines": [59, 88],
+      "description": "Declares file status fields, read and delete counters, key table storage, and end-of-job display messages."
+    },
+    {
+      "id": "KEY_TABLE_INITIALIZATION",
+      "type": "DATA_INITIALIZATION",
+      "name": "Key Table Setup",
+      "lines": [96, 98],
+      "description": "Initializes the in-memory key table by moving static key values into the OCCURS-based key array."
+    },
+    {
+      "id": "MAINLINE",
+      "type": "ENTRY_POINT",
+      "name": "0000-Mainline",
+      "lines": [90, 96],
+      "description": "Top-level execution flow coordinating initialization, random read/delete processing, and program termination."
+    },
+    {
+      "id": "BEGIN_JOB",
+      "type": "INITIALIZATION",
+      "name": "1000-Begin-Job",
+      "lines": [98, 103],
+      "description": "Populates the key table and opens the indexed file in I-O mode for random read and delete access."
+    },
+    {
+      "id": "PROCESS_LOOP",
+      "type": "LOOP",
+      "name": "2000-Process",
+      "lines": [105, 116],
+      "condition": "VARYING WS-Key-SUB FROM 1 UNTIL WS-Key-SUB > WS-Key-Element-Cnt",
+      "description": "Iterates over the predefined key table, performs a random read for each key, and deletes the corresponding indexed record."
+    },
+    {
+      "id": "DELETE_RECORD",
+      "type": "DATA_MODIFICATION",
+      "name": "2100-Delete-CUSTFile",
+      "lines": [118, 120],
+      "description": "Initiates deletion of the currently accessed indexed record."
+    },
+    {
+      "id": "READ_CUSTFILE",
+      "type": "FILE_IO",
+      "name": "5000-Read-CUSTFile",
+      "lines": [126, 148],
+      "description": "Performs a random READ using the record key, updates the read counter, and handles EOF and read error conditions."
+    },
+    {
+      "id": "DELETE_CUSTFILE",
+      "type": "FILE_IO",
+      "name": "6000-Delete-CUSTFile",
+      "lines": [150, 165],
+      "description": "Deletes the current indexed record and updates delete counters, handling delete failure conditions."
+    },
+    {
+      "id": "END_JOB",
+      "type": "TERMINATION",
+      "name": "3000-End-Job",
+      "lines": [122, 125],
+      "description": "Displays end-of-job statistics and closes the indexed file."
+    },
+    {
+      "id": "ERROR_HANDLING",
+      "type": "CONTROL_FLOW",
+      "name": "Read/Delete Error Path",
+      "lines": [138, 164],
+      "description": "Handles abnormal read or delete conditions by displaying diagnostics, performing cleanup, setting the return code, and terminating execution."
+    }
+  ]
+}
+

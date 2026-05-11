@@ -1,0 +1,92 @@
+{
+  "program": "VSCBEX03",
+  "language": "COBOL",
+  "structures": [
+    {
+      "id": "PROGRAM_METADATA",
+      "type": "METADATA",
+      "name": "Program Header",
+      "lines": [1, 30],
+      "description": "Program documentation including purpose, indexed random-read behavior, portability notes, and maintenance history."
+    },
+    {
+      "id": "IDENTIFICATION",
+      "type": "DECLARATION",
+      "name": "IDENTIFICATION DIVISION",
+      "lines": [31, 34],
+      "description": "Declares the program name VSCBEX03 and identifies the compilation unit."
+    },
+    {
+      "id": "FILE_CONTROL",
+      "type": "CONFIGURATION",
+      "name": "FILE-CONTROL",
+      "lines": [41, 49],
+      "description": "Defines the indexed customer file, its physical assignment, record key, RANDOM access mode, and file status handling."
+    },
+    {
+      "id": "FILE_DEFINITION",
+      "type": "DATA_DEFINITION",
+      "name": "CUSTFile FD",
+      "lines": [53, 55],
+      "description": "Defines the indexed customer file record layout using the shared CUSTOMER copybook."
+    },
+    {
+      "id": "WORKING_STORAGE",
+      "type": "DATA_DEFINITION",
+      "name": "WORKING-STORAGE SECTION",
+      "lines": [57, 83],
+      "description": "Declares file status fields, record counters, static key storage, key table structures, and end-of-job messages."
+    },
+    {
+      "id": "KEY_TABLE_INITIALIZATION",
+      "type": "DATA_INITIALIZATION",
+      "name": "Key Table Setup",
+      "lines": [85, 87],
+      "description": "Initializes the in-memory key table by moving predefined key values into the OCCURS-based key array."
+    },
+    {
+      "id": "MAINLINE",
+      "type": "ENTRY_POINT",
+      "name": "0000-Mainline",
+      "lines": [89, 95],
+      "description": "Top-level control flow coordinating initialization, random-read processing, and program termination."
+    },
+    {
+      "id": "BEGIN_JOB",
+      "type": "INITIALIZATION",
+      "name": "1000-Begin-Job",
+      "lines": [97, 102],
+      "description": "Populates the key table, opens the indexed file for random access, and prepares the program for processing."
+    },
+    {
+      "id": "PROCESS_LOOP",
+      "type": "LOOP",
+      "name": "2000-Process",
+      "lines": [104, 114],
+      "condition": "VARYING WS-Key-SUB FROM 1 UNTIL WS-Key-SUB > WS-Key-Element-Cnt",
+      "description": "Iterates over the predefined key table, assigns each key to the record key field, and performs a random indexed read."
+    },
+    {
+      "id": "READ_CUSTFILE",
+      "type": "FILE_IO",
+      "name": "5000-Read-CUSTFile",
+      "lines": [120, 142],
+      "description": "Performs a random READ on the indexed file using the supplied record key, updates counters, and handles error conditions."
+    },
+    {
+      "id": "END_JOB",
+      "type": "TERMINATION",
+      "name": "3000-End-Job",
+      "lines": [116, 119],
+      "description": "Displays end-of-job statistics and closes the indexed file."
+    },
+    {
+      "id": "ERROR_HANDLING",
+      "type": "CONTROL_FLOW",
+      "name": "Random Read Error Path",
+      "lines": [132, 141],
+      "description": "Handles read failures by displaying diagnostics, performing cleanup, setting the return code, and terminating execution."
+    }
+  ]
+}
+

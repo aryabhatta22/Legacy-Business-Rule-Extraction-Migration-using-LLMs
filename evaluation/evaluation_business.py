@@ -158,12 +158,23 @@ def evaluate_business(inferred: Dict[str, Any], annotated: Dict[str, Any]) -> Di
         summary["hallucinated"] / total_predicted if total_predicted > 0 else 0.0
     )
 
+    # Average semantic faithfulness across all matched pairs (correct + partial).
+    # Unmatched (missing/hallucinated) pairs have no meaningful semantic score
+    # so they are excluded — this metric measures quality of what was found.
+    matched_scores = [
+        m["semantic_score"] for m in report["correct"] + report["partial"]
+    ]
+    avg_semantic = (
+        round(sum(matched_scores) / len(matched_scores), 4) if matched_scores else 0.0
+    )
+
     summary.update(
         {
             "total_ground_truth": total_ground_truth,
             "total_predicted": total_predicted,
             "completeness": round(completeness, 4),
             "hallucination_rate": round(hallucination_rate, 4),
+            "avg_semantic": avg_semantic,
         }
     )
     return {"summary": summary, "details": report}

@@ -1,18 +1,11 @@
 {
   "program": "VSCBEX01",
-  "complexity": {
-    "level": "medium",
-    "justification": "Sequential + write + error handling"
-  },
   "rules": [
     {
       "rule_id": "BR_001",
       "category": "BUSINESS_RULE",
       "domain": "customer_data_loading",
-      "source_lines": [
-        77,
-        80
-      ],
+      "source_lines": [50, 55],
       "cobol_snippet": "OPEN INPUT LOADFile\nOPEN OUTPUT CUSTFile",
       "natural_language_rule": "The system initializes customer data loading by opening the source flat file for input and the indexed customer file for output.",
       "confidence": "high"
@@ -21,10 +14,7 @@
       "rule_id": "BR_002",
       "category": "BUSINESS_RULE",
       "domain": "customer_data_loading",
-      "source_lines": [
-        82,
-        88
-      ],
+      "source_lines": [57, 66],
       "cobol_snippet": "PERFORM UNTIL WS-LOADFile-EOF",
       "natural_language_rule": "Customer records are processed sequentially from the flat file until the end-of-file condition is reached.",
       "confidence": "high"
@@ -33,10 +23,7 @@
       "rule_id": "BR_003",
       "category": "BUSINESS_RULE",
       "domain": "customer_data_persistence",
-      "source_lines": [
-        90,
-        93
-      ],
+      "source_lines": [68, 72],
       "cobol_snippet": "MOVE LOADFile-Customer-Record TO CUSTFile-Customer-Record",
       "natural_language_rule": "Each input customer record is copied into the indexed customer file record structure before storage.",
       "confidence": "high"
@@ -45,10 +32,7 @@
       "rule_id": "BR_004",
       "category": "BUSINESS_RULE",
       "domain": "customer_data_persistence",
-      "source_lines": [
-        124,
-        126
-      ],
+      "source_lines": [110, 114],
       "cobol_snippet": "WRITE CUSTFile-Customer-Record",
       "natural_language_rule": "Each valid customer record read from the flat file must be written to the indexed customer file.",
       "confidence": "high"
@@ -57,10 +41,7 @@
       "rule_id": "TR_005",
       "category": "TECHNICAL_RULE",
       "domain": "record_tracking",
-      "source_lines": [
-        108,
-        110
-      ],
+      "source_lines": [94, 97],
       "cobol_snippet": "ADD +1 TO FD-LOADFile-Record-Cnt",
       "natural_language_rule": "The system increments the flat-file read counter after each successful input record read.",
       "confidence": "high"
@@ -69,10 +50,7 @@
       "rule_id": "TR_006",
       "category": "TECHNICAL_RULE",
       "domain": "record_tracking",
-      "source_lines": [
-        126,
-        128
-      ],
+      "source_lines": [112, 115],
       "cobol_snippet": "ADD +1 TO FD-CUSTFile-Insert-Cnt",
       "natural_language_rule": "The system increments the indexed-file insert counter after each successful record write.",
       "confidence": "high"
@@ -81,34 +59,25 @@
       "rule_id": "ER_007",
       "category": "ERROR_HANDLING_RULE",
       "domain": "file_read_error",
-      "source_lines": [
-        114,
-        121
-      ],
+      "source_lines": [100, 109],
       "cobol_snippet": "DISPLAY \"Read LOADFile Failed.\"",
-      "natural_language_rule": "If a flat file read error occurs (excluding end-of-file), the program displays an error message, performs cleanup, and terminates execution.",
+      "natural_language_rule": "If a flat file read error occurs (excluding end-of-file), the program must display an error message and terminate execution.",
       "confidence": "high"
     },
     {
       "rule_id": "ER_008",
       "category": "ERROR_HANDLING_RULE",
       "domain": "file_write_error",
-      "source_lines": [
-        129,
-        135
-      ],
+      "source_lines": [118, 126],
       "cobol_snippet": "DISPLAY \"Write CUSTFile Failed.\"",
-      "natural_language_rule": "If writing to the indexed customer file fails, the program displays an error message, performs cleanup, and terminates execution.",
+      "natural_language_rule": "If writing to the indexed customer file fails, the program must display an error message, perform cleanup, and terminate.",
       "confidence": "high"
     },
     {
       "rule_id": "TR_009",
       "category": "TECHNICAL_RULE",
       "domain": "termination_handling",
-      "source_lines": [
-        95,
-        98
-      ],
+      "source_lines": [74, 84],
       "cobol_snippet": "DISPLAY \"Records Read:\" FD-LOADFile-Record-Cnt",
       "natural_language_rule": "At the end of processing, the system displays the total number of records read and successfully inserted.",
       "confidence": "high"
@@ -117,10 +86,7 @@
       "rule_id": "TR_010",
       "category": "TECHNICAL_RULE",
       "domain": "resource_management",
-      "source_lines": [
-        100,
-        101
-      ],
+      "source_lines": [82, 85],
       "cobol_snippet": "CLOSE LOADFile CUSTFile",
       "natural_language_rule": "All opened files must be properly closed before program termination.",
       "confidence": "high"

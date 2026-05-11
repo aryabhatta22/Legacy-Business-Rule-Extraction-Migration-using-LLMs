@@ -31,6 +31,10 @@ STRUCTURE_TYPE_MAP = {
     "CONDITIONAL": {"CONTROL_FLOW"},
 }
 
+# Annotated types that correspond to root-level (DIVISION) structures.
+# These legitimately have no parent, so a null parent_id is correct for them.
+_DIVISION_ANNOTATED_TYPES = {"METADATA", "CONFIGURATION", "DATA"}
+
 
 def _normalize_tokens(text: str) -> Set[str]:
     """Tokenize names using lowercase alphanumeric chunks."""
@@ -79,6 +83,45 @@ def _type_compatible(inferred_type: str, annotated_type: str) -> bool:
     if inferred_type == annotated_type:
         return True
     return annotated_type in STRUCTURE_TYPE_MAP.get(inferred_type, set())
+
+
+def _compute_structural_fidelity(correct_matches: List[Dict[str, Any]]) -> float:
+    """Measure how well the model preserves the COBOL parent-child hierarchy.
+
+    For each correctly matched structure:
+    - If the annotated type is a root (DIVISION-level), a null parent_id is correct.
+    - Otherwise, the inferred parent_id must point to another correctly matched structure,
+      meaning the parent was also correctly identified.
+
+    Returns correct_with_valid_parent / total_correct.
+    """
+    if not correct_matches:
+        return 0.0
+
+    # Collect the inferred IDs of all correctly matched structures so we can
+    # check whether a given parent_id resolves to a correct match.
+    correct_inferred_ids = {
+        m["inferred"]["id"]
+        for m in correct_matches
+        if m.get("inferred") and m["inferred"].get("id")
+    }
+
+    valid_parent_count = 0
+    for match in correct_matches:
+        inferred = match.get("inferred") or {}
+        annotated = match.get("annotated") or {}
+        parent_id = inferred.get("parent_id")
+
+        if parent_id is None:
+            # Root structures (divisions) should have no parent — this is correct.
+            if annotated.get("type") in _DIVISION_ANNOTATED_TYPES:
+                valid_parent_count += 1
+        else:
+            # Non-root structures must reference a parent that was itself correct.
+            if parent_id in correct_inferred_ids:
+                valid_parent_count += 1
+
+    return round(valid_parent_count / len(correct_matches), 4)
 
 
 def evaluate_structure_base(
@@ -175,7 +218,6 @@ def evaluate_structure(inferred: Dict[str, Any], annotated: Dict[str, Any]) -> D
     """Return structure evaluation counts plus derived metrics."""
     base_report = evaluate_structure_base(inferred, annotated)
     summary = base_report["summary"]
-    inferred_structs = inferred.get("structures", [])
 
     total_ground_truth = summary["correct"] + summary["partial"] + summary["missing"]
     total_predicted = summary["correct"] + summary["partial"] + summary["hallucinated"]
@@ -189,12 +231,11 @@ def evaluate_structure(inferred: Dict[str, Any], annotated: Dict[str, Any]) -> D
         summary["hallucinated"] / total_predicted if total_predicted > 0 else 0.0
     )
 
-    hierarchy_links = [
-        item for item in inferred_structs if item.get("parent_id") is not None
-    ]
-    structural_fidelity = (
-        len(hierarchy_links) / len(inferred_structs) if inferred_structs else 0.0
-    )
+    # Structural fidelity: proportion of correct matches whose parent relationship
+    # is also correct. Uses the fixed _compute_structural_fidelity helper — the old
+    # implementation counted any inferred structure with a parent_id set, which
+    # measured nothing about correctness and always returned 0.0 in dry-run mode.
+    structural_fidelity = _compute_structural_fidelity(base_report["details"]["correct"])
 
     enhanced_summary = {
         **summary,
@@ -202,7 +243,7 @@ def evaluate_structure(inferred: Dict[str, Any], annotated: Dict[str, Any]) -> D
         "total_predicted": total_predicted,
         "completeness": round(completeness, 4),
         "hallucination_rate": round(hallucination_rate, 4),
-        "structural_fidelity": round(structural_fidelity, 4),
+        "structural_fidelity": structural_fidelity,
     }
 
     return {"summary": enhanced_summary, "details": base_report["details"]}

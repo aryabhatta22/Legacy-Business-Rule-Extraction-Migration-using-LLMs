@@ -22,6 +22,9 @@ class EvaluationResult:
         self.validation_status = validation_status
         self.timestamp = datetime.utcnow().isoformat() + "Z"
 
+        # Complexity label (simple / medium / complex) read from the annotation file.
+        self.complexity: Optional[str] = None
+
         self.llm_output: Optional[Dict[str, Any]] = None
         self.ground_truth: Optional[Dict[str, Any]] = None
         self.evaluation_details: List[Dict[str, Any]] = []
@@ -36,6 +39,7 @@ class EvaluationResult:
             "recall": 0.0,
             "completeness": 0.0,
             "hallucination_rate": 0.0,
+            "cbs": 0.0,
         }
 
     def add_detail(
@@ -59,7 +63,7 @@ class EvaluationResult:
         self.evaluation_details.append(detail)
 
     def finalize_metrics(self, evaluation_summary: Dict[str, Any]):
-        """Compute shared metrics and preserve task-specific summary values."""
+        """Compute shared metrics, CBS, and preserve task-specific summary values."""
         counts = {
             "correct": evaluation_summary.get("correct", 0),
             "partial": evaluation_summary.get("partial", 0),
@@ -87,6 +91,17 @@ class EvaluationResult:
             counts["hallucinated"] / total_predicted if total_predicted > 0 else 0.0
         )
 
+        # Composite Benchmark Score (CBS) weights recall highest because missing
+        # ground-truth items are the most critical failure for legacy modernization.
+        # The (1 - H) term rewards low hallucination without double-penalising precision.
+        # Formula: CBS = 0.40×R + 0.30×P + 0.20×(1−H) + 0.10×C
+        cbs = (
+            0.40 * recall
+            + 0.30 * precision
+            + 0.20 * (1.0 - hallucination_rate)
+            + 0.10 * completeness
+        )
+
         self.metrics = {
             **counts,
             "total_ground_truth": total_ground_truth,
@@ -95,9 +110,11 @@ class EvaluationResult:
             "recall": round(recall, 4),
             "completeness": round(completeness, 4),
             "hallucination_rate": round(hallucination_rate, 4),
+            "cbs": round(cbs, 4),
         }
 
-        # Preserve any task-specific metrics such as structural_fidelity.
+        # Preserve task-specific metrics (structural_fidelity, avg_semantic)
+        # that arrive in the evaluation summary without overwriting base metrics.
         for key, value in evaluation_summary.items():
             if key not in self.metrics:
                 self.metrics[key] = value
@@ -109,6 +126,7 @@ class EvaluationResult:
             "prompt_strategy": self.prompt_strategy,
             "task": self.task,
             "file": self.file,
+            "complexity": self.complexity,
             "validation_status": self.validation_status,
             "timestamp": self.timestamp,
             "llm_output": self.llm_output,
@@ -127,11 +145,13 @@ def build_evaluation_result(
     llm_output: Optional[Dict[str, Any]],
     ground_truth: Dict[str, Any],
     evaluation_report: Dict[str, Any],
+    complexity: Optional[str] = None,
 ) -> EvaluationResult:
-    """Build an EvaluationResult from evaluation output."""
+    """Build an EvaluationResult from raw evaluation output."""
     result = EvaluationResult(model, prompt_strategy, task, file, validation_status)
     result.llm_output = llm_output
     result.ground_truth = ground_truth
+    result.complexity = complexity
 
     summary = evaluation_report.get("summary", {})
     details = evaluation_report.get("details", {})

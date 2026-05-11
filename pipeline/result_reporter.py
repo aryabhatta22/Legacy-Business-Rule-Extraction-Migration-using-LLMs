@@ -35,7 +35,7 @@ class ResultReporter:
         logger.artifact_written(str(self.json_file))
 
     def save_csv(self):
-        """Write summary rows to CSV."""
+        """Write per-run summary rows to CSV with all benchmark metrics."""
         logger = get_logger()
         try:
             import pandas as pd
@@ -46,13 +46,18 @@ class ResultReporter:
         rows = []
         for result in self.results:
             metrics = result.get("metrics", {})
+            # schema_pass_rate is 1 for a valid run, 0 otherwise. Aggregate
+            # rates are computed from these binary values in reporting_tables.py.
+            schema_pass = 1 if result.get("validation_status") == "valid" else 0
             rows.append(
                 {
                     "model": result.get("model"),
                     "prompt_strategy": result.get("prompt_strategy"),
                     "task": result.get("task"),
                     "file": result.get("file"),
+                    "complexity": result.get("complexity"),
                     "validation_status": result.get("validation_status"),
+                    "schema_pass_rate": schema_pass,
                     "correct": metrics.get("correct", 0),
                     "partial": metrics.get("partial", 0),
                     "missing": metrics.get("missing", 0),
@@ -63,7 +68,9 @@ class ResultReporter:
                     "recall": metrics.get("recall", 0.0),
                     "completeness": metrics.get("completeness", 0.0),
                     "hallucination_rate": metrics.get("hallucination_rate", 0.0),
+                    "cbs": metrics.get("cbs", 0.0),
                     "structural_fidelity": metrics.get("structural_fidelity"),
+                    "avg_semantic": metrics.get("avg_semantic"),
                     "timestamp": result.get("timestamp"),
                 }
             )
@@ -118,6 +125,23 @@ class ResultReporter:
         total_ground_truth = total_correct + total_partial + total_missing
         total_predicted = total_correct + total_partial + total_hallucinated
 
+        precision = round(total_correct / total_predicted, 4) if total_predicted > 0 else 0.0
+        recall = round(total_correct / total_ground_truth, 4) if total_ground_truth > 0 else 0.0
+        completeness = (
+            round((total_correct + total_partial) / total_ground_truth, 4)
+            if total_ground_truth > 0 else 0.0
+        )
+        hallucination_rate = (
+            round(total_hallucinated / total_predicted, 4) if total_predicted > 0 else 0.0
+        )
+        cbs = round(
+            0.40 * recall
+            + 0.30 * precision
+            + 0.20 * (1.0 - hallucination_rate)
+            + 0.10 * completeness,
+            4,
+        )
+
         return {
             "total_results": len(self.results),
             "run_timestamp": datetime.utcnow().isoformat() + "Z",
@@ -129,27 +153,49 @@ class ResultReporter:
                 "total_hallucinated": total_hallucinated,
                 "total_ground_truth": total_ground_truth,
                 "total_predicted": total_predicted,
-                "precision": round(
-                    total_correct / total_predicted, 4
-                ) if total_predicted > 0 else 0.0,
-                "recall": round(
-                    total_correct / total_ground_truth, 4
-                ) if total_ground_truth > 0 else 0.0,
-                "completeness": round(
-                    (total_correct + total_partial) / total_ground_truth, 4
-                ) if total_ground_truth > 0 else 0.0,
-                "hallucination_rate": round(
-                    total_hallucinated / total_predicted, 4
-                ) if total_predicted > 0 else 0.0,
+                "precision": precision,
+                "recall": recall,
+                "completeness": completeness,
+                "hallucination_rate": hallucination_rate,
+                "cbs": cbs,
             },
         }
 
     def save_summary(self):
-        """Write aggregate statistics for backward compatibility."""
+        """Write aggregate statistics to summary.json."""
         logger = get_logger()
         with open(self.summary_file, "w", encoding="utf-8") as fh:
             json.dump(self.generate_summary(), fh, indent=2, default=str)
         logger.artifact_written(str(self.summary_file))
+
+    def generate_extended_outputs(self):
+        """Generate aggregated tables, graphs, and analysis summary.
+
+        Called once after all runs complete. Each module is imported here so the
+        pipeline still runs correctly even if a module has an import error — the
+        logger will report the problem without stopping the main results from saving.
+        """
+        logger = get_logger()
+
+        try:
+            from pipeline.reporting_tables import generate_all_tables
+            generate_all_tables(self.results, self.results_dir)
+        except Exception as exc:
+            logger.warn(f"reporting_tables failed: {exc}", indent=1)
+
+        try:
+            from pipeline.graphs import generate_all_graphs
+            graphs_dir = self.results_dir / "graphs"
+            graphs_dir.mkdir(parents=True, exist_ok=True)
+            generate_all_graphs(self.results, graphs_dir)
+        except Exception as exc:
+            logger.warn(f"graphs failed: {exc}", indent=1)
+
+        try:
+            from pipeline.analysis import generate_analysis
+            generate_analysis(self.results, self.results_dir)
+        except Exception as exc:
+            logger.warn(f"analysis failed: {exc}", indent=1)
 
     def print_summary(self):
         """Log a concise end-of-run summary."""
@@ -166,6 +212,7 @@ class ResultReporter:
                 f"precision={global_stats.get('precision', 0.0)} "
                 f"recall={global_stats.get('recall', 0.0)} "
                 f"completeness={global_stats.get('completeness', 0.0)} "
-                f"hallucination_rate={global_stats.get('hallucination_rate', 0.0)}",
+                f"hallucination_rate={global_stats.get('hallucination_rate', 0.0)} "
+                f"cbs={global_stats.get('cbs', 0.0)}",
                 indent=0,
             )

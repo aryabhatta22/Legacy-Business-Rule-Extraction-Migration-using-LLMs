@@ -80,11 +80,15 @@ def load_all_programs(cobol_dir: str, annotations_base: str):
         cobol = load_cobol_file(path)
         program = cobol.get("program")
         struct, biz = load_annotation_files(program, annotations_base)
+        # Complexity level is stored in the structure annotation JSON.
+        # Falls back to None when the annotation is missing or has no complexity field.
+        complexity_level = (struct or {}).get("complexity", {}).get("level")
         programs.append({
             "program": program,
             "cobol_path": path,
             "cobol": cobol,
             "structure_annotation": struct,
             "business_annotation": biz,
+            "complexity": complexity_level,
         })
     return programs

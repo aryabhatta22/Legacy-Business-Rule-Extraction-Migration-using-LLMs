@@ -31,6 +31,15 @@ def _cobol_code_from_lines(cobol_obj: dict) -> str:
     return "\n".join(ordered)
 
 
+def _fill_prompt(template: str, program: str, code: str) -> str:
+    """Substitute {program} and {code} without interpreting other braces.
+
+    str.format() treats every {…} as a placeholder, which breaks templates
+    that embed literal JSON examples. Simple replace() is unambiguous.
+    """
+    return template.replace("{program}", program).replace("{code}", code)
+
+
 def _get_model_runs() -> List[Dict[str, Any]]:
     """Return live models or a deterministic dry-run placeholder."""
     if USE_LLM:
@@ -113,6 +122,7 @@ def _record_result(
     parsed_output: Optional[Dict[str, Any]],
     annotated: Dict[str, Any],
     eval_report: Dict[str, Any],
+    complexity: Optional[str] = None,
 ):
     """Store the same per-run record in both detailed and JSONL summaries."""
     result = build_evaluation_result(
@@ -124,6 +134,7 @@ def _record_result(
         llm_output=parsed_output,
         ground_truth=annotated,
         evaluation_report=eval_report,
+        complexity=complexity,
     )
     result_dict = result.to_dict()
     reporter.add_result(result_dict)
@@ -165,11 +176,14 @@ def main():
     for program in programs:
         program_name = program["program"]
         cobol_code = _cobol_code_from_lines(program["cobol"])
+        # Complexity label is read once per program from the annotation file and
+        # passed to every run so it appears in all result rows for this program.
+        complexity = program.get("complexity")
         logger.program_start(program_name)
 
         for strategy, template in structure_prompts.get("strategies", {}).items():
             logger.task_start("structure", strategy)
-            prompt = template.format(program=program_name, code=cobol_code)
+            prompt = _fill_prompt(template, program_name, cobol_code)
             annotated = program.get("structure_annotation") or {}
 
             for model in model_runs:
@@ -227,12 +241,13 @@ def main():
                     parsed_output=parsed,
                     annotated=annotated,
                     eval_report=eval_report,
+                    complexity=complexity,
                 )
                 logger.evaluation_complete(eval_report.get("summary", {}))
 
         for strategy, template in business_prompts.get("strategies", {}).items():
             logger.task_start("business", strategy)
-            prompt = template.format(program=program_name, code=cobol_code)
+            prompt = _fill_prompt(template, program_name, cobol_code)
             annotated = program.get("business_annotation") or {}
 
             for model in model_runs:
@@ -290,12 +305,14 @@ def main():
                     parsed_output=parsed,
                     annotated=annotated,
                     eval_report=eval_report,
+                    complexity=complexity,
                 )
                 logger.evaluation_complete(eval_report.get("summary", {}))
 
     reporter.save_json()
     reporter.save_csv()
     reporter.save_summary()
+    reporter.generate_extended_outputs()
     reporter.print_summary()
     logger.pipeline_end()
 

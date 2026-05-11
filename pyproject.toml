@@ -8,6 +8,7 @@ dependencies = [
     "langchain>=1.2.3",
     "langchain-openai>=1.1.7",
     "langchain-openrouter>=0.0.2",
+    "matplotlib>=3.9.0",
     "pandas>=3.0.1",
     "pydantic>=2.12.5",
 ]
