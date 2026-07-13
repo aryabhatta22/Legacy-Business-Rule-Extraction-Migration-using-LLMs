@@ -18,6 +18,15 @@ from schema.program_structure import StructureOutput
 
 USE_LLM = os.getenv("USE_LLM", "0") == "1"
 
+# Comma-separated program names (e.g. PROGRAMS=VSCBEX01 or PROGRAMS=VSCBEX01,VSCBEX03).
+# Empty/unset means run all programs. Lets dev/test runs hit the API for a single
+# program instead of the full matrix.
+PROGRAM_FILTER = {
+    name.strip().upper()
+    for name in os.getenv("PROGRAMS", "").split(",")
+    if name.strip()
+}
+
 
 def _read_prompts(path: str) -> dict:
     with open(path, "r", encoding="utf-8") as fh:
@@ -73,6 +82,27 @@ def _parsed_model_to_dict(parsed_model: Any) -> Optional[Dict[str, Any]]:
     return None
 
 
+def _serialize_raw_response(raw: Any) -> Optional[str]:
+    """Flatten the agent's raw response into text safe for results.json.
+
+    LLMCaller returns the agent's raw invoke() result — a dict holding LangChain
+    message objects. Dumping that directly would store object reprs, which are
+    useless for re-parsing. The final message's content is the pre-parse text
+    needed to debug JSON-extraction and schema-validation failures.
+    """
+    if raw is None:
+        return None
+    if isinstance(raw, str):
+        return raw
+    if isinstance(raw, dict):
+        messages = raw.get("messages")
+        if messages:
+            content = getattr(messages[-1], "content", messages[-1])
+            return content if isinstance(content, str) else str(content)
+        return str(raw)
+    return str(raw)
+
+
 def _empty_evaluation_report() -> Dict[str, Any]:
     """Return an empty report with the same shape as the evaluators."""
     return {
@@ -123,6 +153,7 @@ def _record_result(
     annotated: Dict[str, Any],
     eval_report: Dict[str, Any],
     complexity: Optional[str] = None,
+    raw_response: Optional[str] = None,
 ):
     """Store the same per-run record in both detailed and JSONL summaries."""
     result = build_evaluation_result(
@@ -135,6 +166,7 @@ def _record_result(
         ground_truth=annotated,
         evaluation_report=eval_report,
         complexity=complexity,
+        raw_response=raw_response,
     )
     result_dict = result.to_dict()
     reporter.add_result(result_dict)
@@ -169,6 +201,9 @@ def main():
     structure_prompts = _read_prompts(os.path.join(prompts_dir, "structure_prompts.json"))
     business_prompts = _read_prompts(os.path.join(prompts_dir, "business_prompts.json"))
     programs = load_all_programs(cobol_dir, annotations_base)
+    if PROGRAM_FILTER:
+        programs = [p for p in programs if p["program"].upper() in PROGRAM_FILTER]
+        logger.info(f"PROGRAMS filter active: {sorted(PROGRAM_FILTER)}", indent=0)
     model_runs = _get_model_runs()
 
     logger.programs_loaded(len(programs))
@@ -196,6 +231,7 @@ def main():
                 # Reset every run-specific variable inside the model loop so one
                 # model cannot leak parsed output, status, or metrics into the next.
                 parsed = None
+                raw_response = None
                 validation_status = "skipped"
                 eval_report = _empty_evaluation_report()
 
@@ -211,6 +247,7 @@ def main():
                         max_retries=model_args.get("max_retries", 1),
                     )
                     parsed = _parsed_model_to_dict(response.get("parsed"))
+                    raw_response = _serialize_raw_response(response.get("raw"))
 
                     if response.get("success") and parsed is not None:
                         validation_status = "valid"
@@ -242,6 +279,7 @@ def main():
                     annotated=annotated,
                     eval_report=eval_report,
                     complexity=complexity,
+                    raw_response=raw_response,
                 )
                 logger.evaluation_complete(eval_report.get("summary", {}))
 
@@ -260,6 +298,7 @@ def main():
                 # Keep the business task isolated for the same reason as the
                 # structure task: every model run must start from a clean slate.
                 parsed = None
+                raw_response = None
                 validation_status = "skipped"
                 eval_report = _empty_evaluation_report()
 
@@ -275,6 +314,7 @@ def main():
                         max_retries=model_args.get("max_retries", 1),
                     )
                     parsed = _parsed_model_to_dict(response.get("parsed"))
+                    raw_response = _serialize_raw_response(response.get("raw"))
 
                     if response.get("success") and parsed is not None:
                         validation_status = "valid"
@@ -306,6 +346,7 @@ def main():
                     annotated=annotated,
                     eval_report=eval_report,
                     complexity=complexity,
+                    raw_response=raw_response,
                 )
                 logger.evaluation_complete(eval_report.get("summary", {}))
 

@@ -1,0 +1,69 @@
+{
+  "program": "VSCBEX02",
+  "complexity": {
+    "level": "simple",
+    "justification": "Linear processing"
+  },
+  "rules": [
+    {
+      "rule_id": "BR_001",
+      "category": "BUSINESS_RULE",
+      "domain": "customer_data_reading",
+      "source_lines": [
+        61,
+        64
+      ],
+      "cobol_snippet": "OPEN INPUT INFile",
+      "natural_language_rule": "The system opens the indexed customer file in input mode and performs an initial read to prepare processing.",
+      "confidence": "high"
+    },
+    {
+      "rule_id": "BR_002",
+      "category": "BUSINESS_RULE",
+      "domain": "customer_data_reading",
+      "source_lines": [
+        55,
+        59
+      ],
+      "cobol_snippet": "PERFORM 2000-Process UNTIL WS-INFile-EOF",
+      "natural_language_rule": "Customer records are processed sequentially until the end-of-file condition is reached.",
+      "confidence": "high"
+    },
+    {
+      "rule_id": "BR_003",
+      "category": "BUSINESS_RULE",
+      "domain": "customer_data_presentation",
+      "source_lines": [
+        66,
+        70
+      ],
+      "cobol_snippet": "DISPLAY INFile-Customer-Record",
+      "natural_language_rule": "Each valid customer record read from the indexed file is displayed.",
+      "confidence": "high"
+    },
+    {
+      "rule_id": "TR_004",
+      "category": "TECHNICAL_RULE",
+      "domain": "record_tracking",
+      "source_lines": [
+        81,
+        83
+      ],
+      "cobol_snippet": "ADD +1 TO FD-INFile-Record-Cnt",
+      "natural_language_rule": "The system increments a counter for each successfully read customer record.",
+      "confidence": "high"
+    },
+    {
+      "rule_id": "ER_005",
+      "category": "ERROR_HANDLING_RULE",
+      "domain": "file_read_error",
+      "source_lines": [
+        87,
+        94
+      ],
+      "cobol_snippet": "DISPLAY \"Read INFile Failed.\"",
+      "natural_language_rule": "If a read error occurs (excluding end-of-file), the program displays an error message, performs cleanup, and terminates execution.",
+      "confidence": "high"
+    }
+  ]
+}

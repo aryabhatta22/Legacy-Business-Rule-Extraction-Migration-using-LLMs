@@ -7,7 +7,7 @@ This repository is a reproducible benchmarking framework for evaluating large la
 | Dimension | Options | Count |
 |-----------|---------|-------|
 | Models | GPT-4.1-mini, Gemma-3-27B, LLaMA-3.1-8B, Qwen-2.5-72B | 4 |
-| Prompt strategies | direct, few_shot, cot, modular | 4 |
+| Prompt strategies | naive, structured, few_shot, cot_hidden | 4 |
 | Tasks | structure, business | 2 |
 | COBOL files | VSCBEX01 – VSCBEX05 | 5 |
 | **Total runs** | **4 × 4 × 2 × 5** | **160** |
@@ -39,10 +39,10 @@ Templates use `{program}` and `{code}` placeholders injected at runtime.
 
 | Strategy | Description |
 |----------|-------------|
-| `direct` | Minimal instruction — extract and return JSON |
-| `few_shot` | Includes worked examples before the target program |
-| `cot` | Uses hidden chain-of-thought reasoning before producing output |
-| `modular` | Breaks extraction into labelled sub-steps within a single prompt |
+| `naive` | Minimal instruction — extract and return JSON |
+| `structured` | Adds strict rules (only explicit elements, exact line numbers, no inference) |
+| `few_shot` | Includes a worked example before the target program |
+| `cot_hidden` | Instructs internal step-by-step reasoning but forbids outputting it |
 
 Prompt files are loaded dynamically; adding a new strategy key requires no code change.
 
@@ -133,7 +133,8 @@ per run. It measures semantic faithfulness independently of recall.
 
 ## Complexity Labels
 
-Each annotated program includes a `complexity.level` field (`simple`, `medium`, `complex`).
+Each annotated program includes a `complexity.level` field (currently `low` or `medium`
+across the five programs).
 The pipeline reads this from `assets/raw/Annotated data/{program}.json` and stores it on
 every result row, enabling complexity-stratified reporting.
 
@@ -169,7 +170,7 @@ All artifacts are written to `experiments/results/` at the end of each run.
 
 | File | Contents |
 |------|----------|
-| `results.json` | Detailed per-run records including `llm_output`, `ground_truth`, `evaluation_details`, and `metrics` |
+| `results.json` | Detailed per-run records including `llm_output`, `raw_response` (pre-parse LLM text, live runs only), `ground_truth`, `evaluation_details`, and `metrics` |
 | `results_summary.csv` | One row per run — all metrics including CBS, structural fidelity, avg semantic, schema pass rate, complexity |
 | `summary.json` | Aggregate statistics grouped by (model, task) plus global totals including CBS |
 
@@ -234,6 +235,21 @@ Live run with all configured models:
 USE_LLM=1 uv run main.py
 ```
 
+Live run limited to specific programs (keeps dev/test runs cheap; comma-separated):
+
+```bash
+PROGRAMS=VSCBEX01 USE_LLM=1 uv run main.py
+```
+
+Re-score a saved `results.json` with the current evaluators — no LLM calls:
+
+```bash
+uv run python scripts/re_evaluate.py --input experiments/results/results.json
+```
+
+`experiments/results/` is fully overwritten each run. Snapshots worth keeping live in
+`experiments/archive/` (see its README).
+
 ---
 
 ## Adding a New Prompt Strategy
@@ -256,8 +272,11 @@ USE_LLM=1 uv run main.py
 ```text
 assets/raw/
   COBOL Program/          Source COBOL programs used in evaluation
-  Annotated data/         Structure ground truth + complexity labels (JSON)
-  Business Logic/         Business rule ground truth (JSON)
+  Annotated data/         Structure ground truth + complexity labels (JSON; older versions in v1/, v2/)
+  Business Logic/         Business rule ground truth (JSON; older versions in v1/, v2/)
+docs/
+  Tracker.md              Problem register and pending-task tracker
+  Execution_Status.md     Session log of implemented fixes
 evaluation/
   evaluation_structure.py Structure matching and structural fidelity computation
   evaluation_business.py  Business rule matching and avg semantic computation
@@ -265,7 +284,8 @@ experiments/
   constants.py            Model and path configuration
   pipeline_logger.py      Unified console + file logger
   experiments_log.py      Lightweight JSONL run log
-  results/                All output artifacts
+  archive/                Manual snapshots preserved across runs (see its README)
+  results/                All output artifacts (overwritten every run)
     graphs/               Benchmark visualisation charts
 pipeline/
   load_data.py            COBOL and annotation file loaders (reads complexity labels)
@@ -282,6 +302,8 @@ prompts/
 schema/
   program_structure.py    Pydantic output schema for structure task
   business_logic.py       Pydantic output schema for business task
+scripts/
+  re_evaluate.py          Re-score a saved results.json without LLM calls
 main.py                   Experiment entry point
 ```
 

@@ -1,0 +1,98 @@
+{
+  "program": "VSCBEX05",
+  "language": "COBOL",
+  "complexity": {
+    "level": "complex",
+    "justification": "Loop, random read, delete, and error handling"
+  },
+  "structures": [
+    {
+      "id": "PROGRAM_METADATA",
+      "type": "METADATA",
+      "lines": [
+        1,
+        21
+      ]
+    },
+    {
+      "id": "IDENTIFICATION",
+      "type": "DECLARATION",
+      "lines": [
+        22,
+        23
+      ]
+    },
+    {
+      "id": "FILE_CONTROL",
+      "type": "CONFIGURATION",
+      "lines": [
+        29,
+        36
+      ]
+    },
+    {
+      "id": "DATA_DIV",
+      "type": "DATA",
+      "lines": [
+        38,
+        68
+      ]
+    },
+    {
+      "id": "MAINLINE",
+      "type": "ENTRY_POINT",
+      "lines": [
+        69,
+        74
+      ]
+    },
+    {
+      "id": "BEGIN_JOB",
+      "type": "INITIALIZATION",
+      "lines": [
+        76,
+        79
+      ]
+    },
+    {
+      "id": "PROCESS_LOOP",
+      "type": "LOOP",
+      "lines": [
+        81,
+        88
+      ]
+    },
+    {
+      "id": "DELETE_RECORD",
+      "type": "PROCESSING",
+      "lines": [
+        90,
+        91
+      ]
+    },
+    {
+      "id": "END_JOB",
+      "type": "TERMINATION",
+      "lines": [
+        93,
+        99
+      ]
+    },
+    {
+      "id": "READ_RANDOM",
+      "type": "FILE_IO",
+      "lines": [
+        101,
+        119
+      ]
+    },
+    {
+      "id": "DELETE_OPERATION",
+      "type": "FILE_IO",
+      "lines": [
+        121,
+        132
+      ]
+    }
+  ]
+}

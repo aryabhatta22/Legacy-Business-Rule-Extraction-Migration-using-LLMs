@@ -1,0 +1,98 @@
+{
+  "program": "VSCBEX01",
+  "language": "COBOL",
+  "complexity": {
+    "level": "medium",
+    "justification": "Sequential input with indexed output, loop, and error handling"
+  },
+  "structures": [
+    {
+      "id": "PROGRAM_METADATA",
+      "type": "METADATA",
+      "lines": [
+        1,
+        21
+      ]
+    },
+    {
+      "id": "IDENTIFICATION",
+      "type": "DECLARATION",
+      "lines": [
+        22,
+        23
+      ]
+    },
+    {
+      "id": "ENVIRONMENT_DIV",
+      "type": "CONFIGURATION",
+      "lines": [
+        25,
+        36
+      ]
+    },
+    {
+      "id": "DATA_DIV",
+      "type": "DATA",
+      "lines": [
+        38,
+        69
+      ]
+    },
+    {
+      "id": "MAINLINE",
+      "type": "ENTRY_POINT",
+      "lines": [
+        71,
+        75
+      ]
+    },
+    {
+      "id": "BEGIN_JOB",
+      "type": "INITIALIZATION",
+      "lines": [
+        77,
+        80
+      ]
+    },
+    {
+      "id": "PROCESS_LOOP",
+      "type": "LOOP",
+      "lines": [
+        82,
+        88
+      ]
+    },
+    {
+      "id": "INSERT_RECORD",
+      "type": "PROCESSING",
+      "lines": [
+        90,
+        93
+      ]
+    },
+    {
+      "id": "END_JOB",
+      "type": "TERMINATION",
+      "lines": [
+        95,
+        102
+      ]
+    },
+    {
+      "id": "READ_INPUT",
+      "type": "FILE_IO",
+      "lines": [
+        104,
+        122
+      ]
+    },
+    {
+      "id": "WRITE_OUTPUT",
+      "type": "FILE_IO",
+      "lines": [
+        124,
+        136
+      ]
+    }
+  ]
+}

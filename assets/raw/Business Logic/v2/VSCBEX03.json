@@ -1,0 +1,69 @@
+{
+  "program": "VSCBEX03",
+  "complexity": {
+    "level": "medium",
+    "justification": "Random access + loop"
+  },
+  "rules": [
+    {
+      "rule_id": "BR_001",
+      "category": "BUSINESS_RULE",
+      "domain": "customer_lookup",
+      "source_lines": [
+        73,
+        76
+      ],
+      "cobol_snippet": "MOVE WS-Key-HOLD TO WS-Key-Table-Setup",
+      "natural_language_rule": "The system initializes a predefined list of customer keys used for random lookup.",
+      "confidence": "high"
+    },
+    {
+      "rule_id": "BR_002",
+      "category": "BUSINESS_RULE",
+      "domain": "customer_lookup",
+      "source_lines": [
+        78,
+        85
+      ],
+      "cobol_snippet": "PERFORM VARYING WS-Key-SUB FROM 1",
+      "natural_language_rule": "Each customer key in the key table is processed sequentially to perform random access reads.",
+      "confidence": "high"
+    },
+    {
+      "rule_id": "BR_003",
+      "category": "BUSINESS_RULE",
+      "domain": "customer_lookup",
+      "source_lines": [
+        95,
+        98
+      ],
+      "cobol_snippet": "READ CUSTFile RECORD KEY IS CUSTFile-Cust-ID",
+      "natural_language_rule": "Customer records are retrieved using random access based on the provided customer ID.",
+      "confidence": "high"
+    },
+    {
+      "rule_id": "TR_004",
+      "category": "TECHNICAL_RULE",
+      "domain": "record_tracking",
+      "source_lines": [
+        100,
+        102
+      ],
+      "cobol_snippet": "ADD +1 TO FD-CUSTFile-Record-Cnt",
+      "natural_language_rule": "The system increments a counter for every successfully retrieved customer record.",
+      "confidence": "high"
+    },
+    {
+      "rule_id": "ER_005",
+      "category": "ERROR_HANDLING_RULE",
+      "domain": "random_read_error",
+      "source_lines": [
+        106,
+        113
+      ],
+      "cobol_snippet": "DISPLAY \"Read CUSTFile Failed.\"",
+      "natural_language_rule": "If a random read fails for reasons other than end-of-file, the program displays an error message, performs cleanup, and terminates execution.",
+      "confidence": "high"
+    }
+  ]
+}

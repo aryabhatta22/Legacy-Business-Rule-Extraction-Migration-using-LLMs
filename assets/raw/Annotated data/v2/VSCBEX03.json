@@ -1,0 +1,82 @@
+{
+  "program": "VSCBEX03",
+  "language": "COBOL",
+  "complexity": {
+    "level": "medium",
+    "justification": "Random access with loop"
+  },
+  "structures": [
+    {
+      "id": "PROGRAM_METADATA",
+      "type": "METADATA",
+      "lines": [
+        1,
+        21
+      ]
+    },
+    {
+      "id": "IDENTIFICATION",
+      "type": "DECLARATION",
+      "lines": [
+        22,
+        23
+      ]
+    },
+    {
+      "id": "FILE_CONTROL",
+      "type": "CONFIGURATION",
+      "lines": [
+        29,
+        36
+      ]
+    },
+    {
+      "id": "DATA_DIV",
+      "type": "DATA",
+      "lines": [
+        38,
+        67
+      ]
+    },
+    {
+      "id": "MAINLINE",
+      "type": "ENTRY_POINT",
+      "lines": [
+        69,
+        73
+      ]
+    },
+    {
+      "id": "BEGIN_JOB",
+      "type": "INITIALIZATION",
+      "lines": [
+        75,
+        78
+      ]
+    },
+    {
+      "id": "PROCESS_LOOP",
+      "type": "LOOP",
+      "lines": [
+        80,
+        87
+      ]
+    },
+    {
+      "id": "END_JOB",
+      "type": "TERMINATION",
+      "lines": [
+        89,
+        93
+      ]
+    },
+    {
+      "id": "READ_RANDOM",
+      "type": "FILE_IO",
+      "lines": [
+        95,
+        112
+      ]
+    }
+  ]
+}

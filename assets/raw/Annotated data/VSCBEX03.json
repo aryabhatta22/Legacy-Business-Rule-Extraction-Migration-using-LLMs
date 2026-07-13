@@ -3,80 +3,104 @@
   "language": "COBOL",
   "complexity": {
     "level": "medium",
-    "justification": "Random access with loop"
+    "justification": "Random-access indexed read driven by a hard-coded key table, with PERFORM VARYING iteration and error handling"
+  },
+  "annotation_metadata": {
+    "annotated_by": "Claude",
+    "annotation_date": "2026-07-12",
+    "validation_status": "verified-against-source",
+    "note": "Every 'lines' range and 'source_snippet' below was checked line-by-line against the uploaded VSCBEX03.cbl using cat -n; paragraph names are the real COBOL paragraph names."
   },
   "structures": [
     {
       "id": "PROGRAM_METADATA",
+      "name": "PROGRAM_METADATA",
       "type": "METADATA",
-      "lines": [
-        1,
-        21
-      ]
+      "lines": [1, 22],
+      "source_snippet": "* Program name:    VSCBEX03\n* Original author: dastagg\n* Description: Example 03: Indexed File Processing: Read Random",
+      "confidence": "high",
+      "confidence_justification": "Comment header block is visually delimited by asterisk banners at lines 1 and 22",
+      "description": "Program header comment block describing purpose, author, and maintenance log"
     },
     {
       "id": "IDENTIFICATION",
+      "name": "IDENTIFICATION",
       "type": "DECLARATION",
-      "lines": [
-        22,
-        23
-      ]
+      "lines": [23, 24],
+      "source_snippet": "IDENTIFICATION DIVISION.\nPROGRAM-ID. VSCBEX03.",
+      "confidence": "high",
+      "confidence_justification": "IDENTIFICATION DIVISION and PROGRAM-ID are explicit COBOL reserved-word headers",
+      "description": "Program identification"
     },
     {
-      "id": "FILE_CONTROL",
+      "id": "ENVIRONMENT_DIV",
+      "name": "ENVIRONMENT_DIV",
       "type": "CONFIGURATION",
-      "lines": [
-        29,
-        36
-      ]
+      "lines": [26, 37],
+      "source_snippet": "SELECT CUSTFile\nASSIGN TO \"../idata/customer.idat\"\nORGANIZATION IS INDEXED\nRECORD KEY IS CUSTFile-Cust-ID\nACCESS MODE IS RANDOM\nFILE STATUS IS WS-CUSTFile-Status.",
+      "confidence": "high",
+      "confidence_justification": "ENVIRONMENT DIVISION / FILE-CONTROL / SELECT are explicit; ACCESS MODE IS RANDOM is unambiguous",
+      "description": "Declares CUSTFile as an indexed customer file opened for random access, keyed on CUSTFile-Cust-ID"
     },
     {
       "id": "DATA_DIV",
+      "name": "DATA_DIV",
       "type": "DATA",
-      "lines": [
-        38,
-        67
-      ]
+      "lines": [39, 67],
+      "source_snippet": "DATA DIVISION.\nFILE SECTION.\nFD  CUSTFile.\n    COPY CUSTOMER REPLACING ==:tag:== BY ==CUSTFile==.\n...\n01  WS-Key-HOLD.\n    12 FILLER PIC 9(4) VALUE 0010.\n...\n01  WS-Key-Table-Storage.\n    12 WS-Key-Element-Cnt PIC 9 VALUE 5.",
+      "confidence": "high",
+      "confidence_justification": "DATA DIVISION, FILE SECTION, and WORKING-STORAGE SECTION headers are explicit; the hard-coded key table (WS-Key-HOLD/WS-Key-Table-Storage) is a distinguishing feature of this program versus VSCBEX01/02",
+      "description": "File record layout, file-status/counter working-storage, and a hard-coded table of 5 customer IDs (0010, 0420, 0878, 0210, 0998) redefined into an OCCURS 5 table for random lookups"
     },
     {
       "id": "MAINLINE",
+      "name": "MAINLINE",
       "type": "ENTRY_POINT",
-      "lines": [
-        69,
-        73
-      ]
+      "lines": [69, 74],
+      "source_snippet": "PROCEDURE DIVISION.\n0000-Mainline.\n    PERFORM 1000-Begin-Job.\n    PERFORM 2000-Process.\n    PERFORM 3000-End-Job.\n    GOBACK.",
+      "confidence": "high",
+      "confidence_justification": "PROCEDURE DIVISION plus 0000-Mainline paragraph unambiguously mark program entry",
+      "description": "Program entry point; straight-line perform of begin/process/end phases"
     },
     {
       "id": "BEGIN_JOB",
+      "name": "BEGIN_JOB",
       "type": "INITIALIZATION",
-      "lines": [
-        75,
-        78
-      ]
+      "lines": [76, 79],
+      "source_snippet": "1000-Begin-Job.\n    MOVE WS-Key-HOLD  TO WS-Key-Table-Setup.\n    OPEN INPUT CUSTFile.\nD    DISPLAY \"CUSTFile Open Status: \" WS-CUSTFile-Status.",
+      "confidence": "high",
+      "confidence_justification": "MOVE and OPEN are direct initialization actions with no branching",
+      "description": "Loads the 5 hard-coded customer IDs into the working key table and opens CUSTFile for random input"
     },
     {
       "id": "PROCESS_LOOP",
+      "name": "PROCESS_LOOP",
       "type": "LOOP",
-      "lines": [
-        80,
-        87
-      ]
+      "lines": [81, 88],
+      "source_snippet": "2000-Process.\n    PERFORM VARYING WS-Key-SUB FROM 1 BY 1\n       UNTIL WS-Key-SUB > WS-Key-Element-Cnt\n       MOVE WS-Key-Value(WS-Key-SUB) TO\n          CUSTFile-Cust-ID\n       PERFORM 5000-Read-CUSTFile\n       DISPLAY \"CUSTFile Record: \" CUSTFile-Customer-Record\n    END-PERFORM.",
+      "confidence": "high",
+      "confidence_justification": "PERFORM VARYING...UNTIL...END-PERFORM is explicit indexed-loop syntax",
+      "description": "Iterates the 5-entry key table, setting the record key and performing a random read for each key, displaying the result inline"
     },
     {
       "id": "END_JOB",
+      "name": "END_JOB",
       "type": "TERMINATION",
-      "lines": [
-        89,
-        93
-      ]
+      "lines": [90, 94],
+      "source_snippet": "3000-End-Job.\n    DISPLAY EOJ-End-Message.\n    DISPLAY \"   Records Read: \" FD-CUSTFile-Record-Cnt\n    CLOSE CUSTFile.\nD    DISPLAY \"CUSTFile Close Status: \" WS-CUSTFile-Status.",
+      "confidence": "high",
+      "confidence_justification": "DISPLAY and CLOSE statements clearly indicate termination/cleanup",
+      "description": "Displays end-of-job banner and read count, then closes CUSTFile"
     },
     {
       "id": "READ_RANDOM",
+      "name": "READ_RANDOM",
       "type": "FILE_IO",
-      "lines": [
-        95,
-        112
-      ]
+      "lines": [96, 114],
+      "source_snippet": "5000-Read-CUSTFile.\n    READ CUSTFile\n       RECORD KEY IS CUSTFile-Cust-ID\n    END-READ.\n    IF WS-CUSTFile-Good\n       ADD +1 TO FD-CUSTFile-Record-Cnt\n    ELSE\n       IF WS-CUSTFile-EOF\n          NEXT SENTENCE\n       ELSE\n          DISPLAY \"** ERROR **: 5000-Read-CUSTFile\"\n          ...\n          PERFORM 3000-End-Job\n          MOVE 8 TO RETURN-CODE\n          GOBACK\n       END-IF\n    END-IF.",
+      "confidence": "medium",
+      "confidence_justification": "READ...RECORD KEY IS is explicit random-access syntax, but the paragraph combines success counting, a not-found branch, and a hard-error abend path into one logical unit",
+      "description": "Performs a keyed random read against CUSTFile using the current key; increments the read counter on success, and on a genuine I/O error (not simple not-found/EOF) logs diagnostics and abends"
     }
   ]
 }

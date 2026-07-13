@@ -26,6 +26,10 @@ class EvaluationResult:
         self.complexity: Optional[str] = None
 
         self.llm_output: Optional[Dict[str, Any]] = None
+        # Pre-parse LLM response text; None on dry runs and when the call failed
+        # before any response arrived. Needed to debug extraction/validation
+        # failures and to re-parse past runs without recalling the LLM.
+        self.raw_response: Optional[str] = None
         self.ground_truth: Optional[Dict[str, Any]] = None
         self.evaluation_details: List[Dict[str, Any]] = []
         self.metrics: Dict[str, Any] = {
@@ -130,6 +134,7 @@ class EvaluationResult:
             "validation_status": self.validation_status,
             "timestamp": self.timestamp,
             "llm_output": self.llm_output,
+            "raw_response": self.raw_response,
             "ground_truth": self.ground_truth,
             "evaluation_details": self.evaluation_details,
             "metrics": self.metrics,
@@ -146,10 +151,12 @@ def build_evaluation_result(
     ground_truth: Dict[str, Any],
     evaluation_report: Dict[str, Any],
     complexity: Optional[str] = None,
+    raw_response: Optional[str] = None,
 ) -> EvaluationResult:
     """Build an EvaluationResult from raw evaluation output."""
     result = EvaluationResult(model, prompt_strategy, task, file, validation_status)
     result.llm_output = llm_output
+    result.raw_response = raw_response
     result.ground_truth = ground_truth
     result.complexity = complexity
 

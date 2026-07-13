@@ -3,96 +3,125 @@
   "language": "COBOL",
   "complexity": {
     "level": "medium",
-    "justification": "Sequential input with indexed output, loop, and error handling"
+    "justification": "Sequential input processing with indexed output, PERFORM loop, and error handling blocks"
+  },
+  "annotation_metadata": {
+    "annotated_by": "Claude",
+    "annotation_date": "2026-07-12",
+    "validation_status": "verified-against-source",
+    "supersedes": "VSCBEX01_CORRECTED_structure_annotation.json (2025-07-07)",
+    "note": "The prior 'CORRECTED' file fixed the missing 'name' field (P1) but still contained fabricated content not present in VSCBEX01.cbl: paragraph names BEGIN_JOB/PROCESS_LOOP/INSERT_RECORD/END_JOB/READ_INPUT/WRITE_OUTPUT do not exist (real names are 1000-Begin-Job, 2000-Process, 2100-Insert-CUSTFile, 3000-End-Job, 5000-Read-LOADFile, 6000-Write-CUSTFile); a VALIDATE_RECORD paragraph and a 'NOT AT END PERFORM VALIDATE_RECORD' read clause do not exist; an 'INVALID KEY PERFORM HANDLE-WRITE-ERROR' write clause and HANDLE-WRITE-ERROR paragraph do not exist. This file replaces those with verified content and correct line numbers."
   },
   "structures": [
     {
       "id": "PROGRAM_METADATA",
+      "name": "PROGRAM_METADATA",
       "type": "METADATA",
-      "lines": [
-        1,
-        21
-      ]
+      "lines": [1, 22],
+      "source_snippet": "* Program name:    VSCBEX01\n* Original author: David Stagowki\n* Description: Example 01: Indexed File Processing: Load File",
+      "confidence": "high",
+      "confidence_justification": "Comment header block visually delimited by asterisk banners at lines 1 and 22",
+      "description": "Program header comment block describing purpose, author, and maintenance log"
     },
     {
       "id": "IDENTIFICATION",
+      "name": "IDENTIFICATION",
       "type": "DECLARATION",
-      "lines": [
-        22,
-        23
-      ]
+      "lines": [24, 25],
+      "source_snippet": "IDENTIFICATION DIVISION.\nPROGRAM-ID. VSCBEX01.",
+      "confidence": "high",
+      "confidence_justification": "IDENTIFICATION DIVISION and PROGRAM-ID are explicit COBOL reserved-word headers",
+      "description": "Program identification"
     },
     {
       "id": "ENVIRONMENT_DIV",
+      "name": "ENVIRONMENT_DIV",
       "type": "CONFIGURATION",
-      "lines": [
-        25,
-        36
-      ]
+      "lines": [27, 44],
+      "source_snippet": "SELECT LOADFile\nASSIGN TO \"../data/customer.dat.txt\"\nORGANIZATION IS LINE SEQUENTIAL\nFILE STATUS IS WS-LOADFile-Status.\n\nSELECT CUSTFile\nASSIGN TO \"../idata/customer.idat\"\nORGANIZATION IS INDEXED\nRECORD KEY IS CUSTFile-Cust-ID\nACCESS MODE IS SEQUENTIAL\nFILE STATUS IS WS-CUSTFile-Status.",
+      "confidence": "high",
+      "confidence_justification": "ENVIRONMENT DIVISION / FILE-CONTROL / two SELECT clauses are explicit and unambiguous",
+      "description": "Declares two files: LOADFile (line-sequential flat file input) and CUSTFile (indexed customer file, sequential access, for output)"
     },
     {
       "id": "DATA_DIV",
+      "name": "DATA_DIV",
       "type": "DATA",
-      "lines": [
-        38,
-        69
-      ]
+      "lines": [46, 68],
+      "source_snippet": "DATA DIVISION.\nFILE SECTION.\nFD  LOADFile\n    LABEL RECORDS ARE STANDARD\n    RECORDING MODE IS F\n    BLOCK CONTAINS 0 RECORDS.\n    COPY CUSTOMER REPLACING ==:tag:== BY ==LOADFile==.\n\nFD  CUSTFile.\n    COPY CUSTOMER REPLACING ==:tag:== BY ==CUSTFile==.",
+      "confidence": "high",
+      "confidence_justification": "DATA DIVISION, FILE SECTION, and WORKING-STORAGE SECTION headers are explicit",
+      "description": "Record layouts for both files (via COPY CUSTOMER), file-status working-storage for both files, two counters (records read / records inserted), and the end-of-job message"
     },
     {
       "id": "MAINLINE",
+      "name": "MAINLINE",
       "type": "ENTRY_POINT",
-      "lines": [
-        71,
-        75
-      ]
+      "lines": [70, 75],
+      "source_snippet": "PROCEDURE DIVISION.\n0000-Mainline.\n    PERFORM 1000-Begin-Job.\n    PERFORM 2000-Process.\n    PERFORM 3000-End-Job.\n    GOBACK.",
+      "confidence": "high",
+      "confidence_justification": "PROCEDURE DIVISION plus the 0000-Mainline paragraph unambiguously mark program entry",
+      "description": "Program entry point; straight-line perform of begin/process/end phases"
     },
     {
       "id": "BEGIN_JOB",
+      "name": "BEGIN_JOB",
       "type": "INITIALIZATION",
-      "lines": [
-        77,
-        80
-      ]
+      "lines": [77, 80],
+      "source_snippet": "1000-Begin-Job.\n    OPEN  INPUT LOADFile.\n    OPEN OUTPUT CUSTFile.\n    PERFORM 5000-Read-LOADFile.",
+      "confidence": "high",
+      "confidence_justification": "OPEN statements plus a priming read are direct initialization actions",
+      "description": "Opens LOADFile for input and CUSTFile for output, then performs the priming read that the loop in 2000-Process relies on"
     },
     {
       "id": "PROCESS_LOOP",
+      "name": "PROCESS_LOOP",
       "type": "LOOP",
-      "lines": [
-        82,
-        88
-      ]
+      "lines": [82, 88],
+      "source_snippet": "2000-Process.\n    IF WS-LOADFile-Good\n       PERFORM UNTIL WS-LOADFile-EOF\n          PERFORM 2100-Insert-CUSTFile\n          PERFORM 5000-Read-LOADFile\n       END-PERFORM\n    END-IF.",
+      "confidence": "high",
+      "confidence_justification": "PERFORM UNTIL...END-PERFORM is explicit loop syntax; the guarding IF WS-LOADFile-Good is also explicit",
+      "description": "Main processing loop, guarded by a check that the priming read succeeded; each iteration inserts the current record then reads the next one (insert-then-read order, since the first read already happened in Begin-Job)"
     },
     {
       "id": "INSERT_RECORD",
+      "name": "INSERT_RECORD",
       "type": "PROCESSING",
-      "lines": [
-        90,
-        93
-      ]
+      "lines": [90, 93],
+      "source_snippet": "2100-Insert-CUSTFile.\n    MOVE LOADFile-Customer-Record TO\n       CUSTFile-Customer-Record.\n    PERFORM 6000-Write-CUSTFile.",
+      "confidence": "high",
+      "confidence_justification": "Direct MOVE followed by an explicit PERFORM of the write paragraph",
+      "description": "Copies the current input record into the output record area, then performs the write paragraph to persist it"
     },
     {
       "id": "END_JOB",
+      "name": "END_JOB",
       "type": "TERMINATION",
-      "lines": [
-        95,
-        102
-      ]
+      "lines": [95, 102],
+      "source_snippet": "3000-End-Job.\n    DISPLAY EOJ-End-Message.\n    DISPLAY \"      Records Read: \" FD-LOADFile-Record-Cnt\n    DISPLAY \"  Records Inserted: \" FD-CUSTFile-Insert-Cnt\n\n    CLOSE LOADFile\n          CUSTFile.\nD    DISPLAY \"CUSTFile Close Status: \" WS-CUSTFile-Status.",
+      "confidence": "high",
+      "confidence_justification": "DISPLAY and CLOSE statements clearly indicate termination/cleanup phase",
+      "description": "Displays end-of-job banner and read/insert counts, closes both files (a debug-only DISPLAY of the close status follows)"
     },
     {
-      "id": "READ_INPUT",
+      "id": "READ_LOADFILE",
+      "name": "READ_LOADFILE",
       "type": "FILE_IO",
-      "lines": [
-        104,
-        122
-      ]
+      "lines": [104, 122],
+      "source_snippet": "5000-Read-LOADFile.\n    READ LOADFile\n       AT END SET WS-LOADFile-EOF TO TRUE\n    END-READ.\n    IF WS-LOADFile-Good\n       ADD +1 TO FD-LOADFile-Record-Cnt\n    ELSE\n       IF WS-LOADFile-EOF\n          NEXT SENTENCE\n       ELSE\n          DISPLAY \"** ERROR **: 5000-Read-LOADFile\"\n          ...\n          PERFORM 3000-End-Job\n          MOVE 8 TO RETURN-CODE\n          GOBACK\n       END-IF\n    END-IF.",
+      "confidence": "medium",
+      "confidence_justification": "READ/AT END is explicit, but the paragraph combines EOF handling, counter increment, and a hard-error abend path into one logical unit; there is no INTO clause and no NOT AT END branch (correcting the prior annotation)",
+      "description": "Reads the next flat-file record; on EOF sets the loop-exit flag, on genuine I/O error displays diagnostics and abends with RETURN-CODE 8. There is no separate validation paragraph invoked here."
     },
     {
-      "id": "WRITE_OUTPUT",
+      "id": "WRITE_CUSTFILE",
+      "name": "WRITE_CUSTFILE",
       "type": "FILE_IO",
-      "lines": [
-        124,
-        136
-      ]
+      "lines": [124, 136],
+      "source_snippet": "6000-Write-CUSTFile.\n    WRITE CUSTFile-Customer-Record.\n    IF WS-CUSTFile-Good\n       ADD +1 TO FD-CUSTFile-Insert-Cnt\n    ELSE\n       DISPLAY \"** ERROR **: 6000-Write-CUSTFile\"\n       DISPLAY \"Write CUSTFile Failed.\"\n       DISPLAY \"File Status: \" WS-CUSTFile-Status\n       PERFORM 3000-End-Job\n       MOVE 8 TO RETURN-CODE\n       GOBACK\n    END-IF.",
+      "confidence": "medium",
+      "confidence_justification": "WRITE is explicit; error handling is a plain file-status IF/ELSE, not an INVALID KEY clause (correcting the prior annotation, which claimed a WRITE...INVALID KEY PERFORM HANDLE-WRITE-ERROR that does not appear in the source)",
+      "description": "Writes the current output record to the indexed customer file; on success increments the insert counter, on any failure displays diagnostics and abends with RETURN-CODE 8. There is no HANDLE-WRITE-ERROR paragraph."
     }
   ]
 }
