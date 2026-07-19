@@ -3,7 +3,96 @@
 Running log of what has actually been implemented from `docs/Implementation_Requirements.md`.
 Update this file whenever a task lands so a fresh session can resume without re-deriving state.
 
-Last updated: 2026-07-13.
+Last updated: 2026-07-19.
+
+## 2026-07-19 — Fix batch implemented (user-approved plan)
+
+All changes below were approved by the user before implementation.
+
+1. **Annotations (change note):** dropped the `PROGRAM_METADATA` comment-header entry
+   from all 5 structure files (models are never asked for comment blocks; it was a
+   guaranteed miss) and retyped `ENVIRONMENT_DIV` from `FILE_CONTROL` (unmatchable —
+   not in the type map or schema) to `CONFIGURATION`. Structure counts are now
+   10/8/8/10/10.
+2. **Numbered source lines in prompts:** `main.py::_cobol_code_from_lines` now
+   prefixes every line with its absolute number (`"77: 1000-Begin-Job."`). This is a
+   deliberate benchmark-design change (user-approved): ground truth and the evaluators
+   reference absolute line numbers, so models must see them — without this the
+   line-overlap gate made the tasks unwinnable. Applies identically to all strategies,
+   so strategy comparison stays internally fair. Thesis methodology must state it.
+3. **Prompt/schema alignment:** the JSON examples in `prompts/*.json` now show the
+   exact fields the Pydantic schemas enforce (`structure_id`/`structure_type`/
+   `line_range`/`description`/`parent_id`; `rule_id`/`rule_category`/`domain`/
+   `evidence{source_structures,source_lines}`/`confidence`/`assumptions`), including
+   allowed enum values. Strategy character (naive/structured/few_shot/cot_hidden)
+   unchanged; `cot_hidden` still has no `{program}` placeholder, as before.
+4. **`error_message` stored per run** (exception or pydantic validation error text
+   from `LLMCaller`) in `results.json` — failed runs are now diagnosable.
+   `scripts/re_evaluate.py` preserves it.
+5. **Two new metrics (change note):** `precision_lenient` / `recall_lenient`
+   (partial matches earn half credit; CBS unchanged) and `avg_line_iou` (mean
+   intersection-over-union of matched line ranges — measures location precision,
+   which the 19-Jul analysis showed is the weakest link). Added to `results.json`,
+   `results_summary.csv`, and all aggregated tables.
+
+Verification: full dry run (5 programs, 40 records) — self-comparison perfect
+(`correct=N, partial=0` everywhere), new metric fields present in JSON + both CSVs,
+`error_message=None` on dry runs as expected.
+
+**Live smoke test (`PROGRAMS=VSCBEX01,VSCBEX02 USE_LLM=1`) outcome:** first attempt
+completed 31/64 runs (evidence preserved in `experiments/log.jsonl` from that run),
+then hung ~1h on a QWEN call — root cause: no request timeout on `ChatOpenRouter`.
+Fixed (default `timeout` in `pipeline/llm_factory.py`, raised to 300s after a 120s
+retry showed ~50% call timeouts across ALL model families during a degraded
+OpenRouter window). Also added a hard abort in `main.py` when `USE_LLM=1` finds no
+configured models (missing `OPENROUTER_API_KEY` previously produced a silent empty
+"successful" run; note `.env` is NOT auto-loaded by the pipeline). The 31 healthy
+runs confirmed: all 4 model families schema-valid (Gemma and LLaMA included — both
+broken before), business matching works with numbered lines (up to 9/10 rules
+matched vs ~0/10 before), `avg_line_iou` 0.13–0.58, business `correct` still 0
+pending threshold calibration (expected). **User chose (19 Jul) to skip a smoke-test
+rerun and go straight to the full 160-run matrix in a healthy provider window** —
+that full run doubles as the final artifact-generation verification on live data.
+
+## 2026-07-19 — Analysis of "business rules failing" + LLM-reported bugs (no fixes yet)
+
+Analyzed `assets/temp/experiment results Befor 19 Jul` (24 records: gpt-4.1-mini,
+llama-3.1-8b, qwen-2.5-72b × VSCBEX01 × 4 strategies × 2 tasks; 22/24 schema-valid).
+
+**Root cause of business-task failure — line numbers, not the threshold.** The prompt
+embeds COBOL source with NO line numbers, but the matcher requires positive
+source-line overlap as a hard gate. Models must guess absolute line numbers and can't:
+ground truth rules sit at lines 77–136; gpt reported 20–77; qwen reported lines past
+the end of the 136-line file (158–166). Most rules therefore never match at all
+(`missing`+`hallucinated`), and the few that do match score 0.06–0.20 Jaccard →
+`correct=0` everywhere. Fix direction: number the source lines in the prompt
+(`1: IDENTIFICATION DIVISION.` …) so line grounding is possible, then revisit
+similarity threshold via calibration (T4).
+
+**Verdict on the four LLM-reported bugs:**
+- Bug 1 (`create_agent` deprecated/breaks) — **false**. It's the current LangChain 1.x
+  API; imports fine on installed 1.2.3, and qwen/llama produced schema-valid output in
+  20/24 runs. The 2 llama `error` rows are pre-response exceptions (raw_response None,
+  exception text not stored — worth adding).
+- Bug 2 (0.5 threshold makes business correct=0) — **symptom real, diagnosis
+  incomplete**: threshold only matters after a line-overlap match; the line gate is the
+  real killer (above). Don't lower 0.5 ad hoc — that's the T4 calibration task.
+- Bug 3 (structure prompts show `start_line`/`end_line` etc., schema wants
+  `line_range`/`structure_id`/…) — **true mismatch**, but "every model fails
+  validation" is false: `ProviderStrategy` enforces the schema server-side, so outputs
+  validate anyway. Harm is content confusion, not validation failure.
+- Bug 4 (business prompts show only `rule_statement`/`source_lines` vs full schema) —
+  **true mismatch**, same caveat as Bug 3.
+
+**New annotations (v3 moved, fresh data in place) checked:** P11 tweaks applied
+(source-spelling names, `IDENTIFICATION` retyped `METADATA`). One new defect:
+`ENVIRONMENT_DIV` is typed `FILE_CONTROL` in all 5 files — `FILE_CONTROL` is not in
+`STRUCTURE_TYPE_MAP` and not emittable by the schema, so that structure is permanently
+unmatchable (systematic `missing` ×5). Retype (e.g. `CONFIGURATION`) or extend the map.
+
+**Testing protocol going forward (user request):** test runs use at least two programs
+(`PROGRAMS=VSCBEX01,VSCBEX02`), and every test run ends with verification of the
+generated metric files, not just "pipeline finished".
 
 ## 2026-07-13 — T1 landed (user re-annotated), verified
 

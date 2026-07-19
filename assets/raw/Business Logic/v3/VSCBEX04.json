@@ -107,7 +107,7 @@
       "confidence": "medium",
       "confidence_justification": "REWRITE is explicit; error handling is a plain file-status IF/ELSE, not an INVALID KEY clause",
       "domain": "customer_price_update",
-      "source_lines": [125, 137],
+      "source_lines": [126, 137],
       "cobol_snippet": "6000-Re-Write-CUSTFile.\n    REWRITE CUSTFile-Customer-Record.\n    IF WS-CUSTFile-Good\n       ADD +1 TO FD-CUSTFile-Re-Write-Cnt\n    ELSE\n       DISPLAY \"** ERROR **: 6000-Re-Write-CUSTFile\" ...\n       PERFORM 3000-End-Job\n       MOVE 8 TO RETURN-CODE\n       GOBACK\n    END-IF.",
       "natural_language_rule": "The updated customer record is persisted back to the indexed file at its existing key position. If the rewrite status is not good, the program logs diagnostics, runs end-of-job cleanup, and terminates immediately with RETURN-CODE 8.",
       "variables": ["CUSTFile-Customer-Record", "WS-CUSTFile-Status"],

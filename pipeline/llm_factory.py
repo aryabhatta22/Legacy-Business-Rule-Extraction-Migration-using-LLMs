@@ -37,6 +37,11 @@ class LLM_Factory:
                             model=model_name,
                             temperature=modelArgs.get("temperature", 0.7),
                             max_tokens=modelArgs.get("max_tokens", 4096),
+                            # A stalled connection without a timeout hangs the
+                            # whole pipeline (observed 2026-07-19 on a QWEN call).
+                            # 300s: at 120s roughly half of all calls timed out
+                            # during a degraded OpenRouter window on 2026-07-19.
+                            timeout=modelArgs.get("timeout", 300),
                         ),
                     }
                 )

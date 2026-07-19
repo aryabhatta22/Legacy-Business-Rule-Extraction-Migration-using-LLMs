@@ -30,6 +30,9 @@ class EvaluationResult:
         # before any response arrived. Needed to debug extraction/validation
         # failures and to re-parse past runs without recalling the LLM.
         self.raw_response: Optional[str] = None
+        # Exception or validation-error text from LLMCaller when the run failed;
+        # None on success and on dry runs.
+        self.error_message: Optional[str] = None
         self.ground_truth: Optional[Dict[str, Any]] = None
         self.evaluation_details: List[Dict[str, Any]] = []
         self.metrics: Dict[str, Any] = {
@@ -86,6 +89,12 @@ class EvaluationResult:
 
         precision = counts["correct"] / total_predicted if total_predicted > 0 else 0.0
         recall = counts["correct"] / total_ground_truth if total_ground_truth > 0 else 0.0
+        # Lenient variants give half credit to partial matches — items that were
+        # found and grounded but scored below the similarity threshold. Reported
+        # alongside the strict values; not used inside CBS.
+        lenient_hits = counts["correct"] + 0.5 * counts["partial"]
+        precision_lenient = lenient_hits / total_predicted if total_predicted > 0 else 0.0
+        recall_lenient = lenient_hits / total_ground_truth if total_ground_truth > 0 else 0.0
         completeness = (
             (counts["correct"] + counts["partial"]) / total_ground_truth
             if total_ground_truth > 0
@@ -112,6 +121,8 @@ class EvaluationResult:
             "total_predicted": total_predicted,
             "precision": round(precision, 4),
             "recall": round(recall, 4),
+            "precision_lenient": round(precision_lenient, 4),
+            "recall_lenient": round(recall_lenient, 4),
             "completeness": round(completeness, 4),
             "hallucination_rate": round(hallucination_rate, 4),
             "cbs": round(cbs, 4),
@@ -135,6 +146,7 @@ class EvaluationResult:
             "timestamp": self.timestamp,
             "llm_output": self.llm_output,
             "raw_response": self.raw_response,
+            "error_message": self.error_message,
             "ground_truth": self.ground_truth,
             "evaluation_details": self.evaluation_details,
             "metrics": self.metrics,
@@ -152,11 +164,13 @@ def build_evaluation_result(
     evaluation_report: Dict[str, Any],
     complexity: Optional[str] = None,
     raw_response: Optional[str] = None,
+    error_message: Optional[str] = None,
 ) -> EvaluationResult:
     """Build an EvaluationResult from raw evaluation output."""
     result = EvaluationResult(model, prompt_strategy, task, file, validation_status)
     result.llm_output = llm_output
     result.raw_response = raw_response
+    result.error_message = error_message
     result.ground_truth = ground_truth
     result.complexity = complexity
 

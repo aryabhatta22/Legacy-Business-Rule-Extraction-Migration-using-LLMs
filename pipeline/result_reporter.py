@@ -66,11 +66,14 @@ class ResultReporter:
                     "total_predicted": metrics.get("total_predicted", 0),
                     "precision": metrics.get("precision", 0.0),
                     "recall": metrics.get("recall", 0.0),
+                    "precision_lenient": metrics.get("precision_lenient", 0.0),
+                    "recall_lenient": metrics.get("recall_lenient", 0.0),
                     "completeness": metrics.get("completeness", 0.0),
                     "hallucination_rate": metrics.get("hallucination_rate", 0.0),
                     "cbs": metrics.get("cbs", 0.0),
                     "structural_fidelity": metrics.get("structural_fidelity"),
                     "avg_semantic": metrics.get("avg_semantic"),
+                    "avg_line_iou": metrics.get("avg_line_iou"),
                     "timestamp": result.get("timestamp"),
                 }
             )

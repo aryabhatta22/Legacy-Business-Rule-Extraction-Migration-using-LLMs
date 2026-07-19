@@ -1,0 +1,4 @@
+model,complexity,precision,recall,completeness,hallucination_rate,cbs,structural_fidelity,avg_semantic,schema_pass_rate,run_count
+meta-llama/llama-3.1-8b-instruct,medium,0.0,0.0,0.0,0.75,0.05,0.0,0.0,0.75,8
+openai/gpt-4.1-mini,medium,0.0952,0.1477,0.4602,0.6423,0.2052,0.5,0.055,1.0,8
+qwen/qwen-2.5-72b-instruct,medium,0.0,0.0,0.4091,0.6386,0.1132,0.0,0.1427,1.0,8

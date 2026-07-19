@@ -53,6 +53,24 @@ def _line_overlap(a: List[int], b: List[int]) -> int:
         return len(set(a or []) & set(b or []))
 
 
+def _line_iou(a: List[int], b: List[int]) -> float:
+    """Intersection-over-union of two [start, end] line ranges.
+
+    Measures how precisely the model located the item, independent of the
+    binary overlap gate. Uses the same [first, second] range convention as
+    _line_overlap, with the same set-based fallback for explicit line lists.
+    """
+    try:
+        a0, a1 = int(a[0]), int(a[1])
+        b0, b1 = int(b[0]), int(b[1])
+        inter = max(0, min(a1, b1) - max(a0, b0) + 1)
+        union = max(a1, b1) - min(a0, b0) + 1
+        return inter / union if union > 0 else 0.0
+    except Exception:
+        sa, sb = set(a or []), set(b or [])
+        return len(sa & sb) / len(sa | sb) if sa | sb else 0.0
+
+
 def _token_overlap_ratio(a: str, b: str) -> float:
     """Return normalized token overlap for structure names."""
     at = _normalize_tokens(a)
@@ -190,6 +208,9 @@ def evaluate_structure_base(
             "inferred": best_candidate,
             "overlap": best_overlap,
             "name_score": round(best_name_score, 4),
+            "line_iou": round(
+                _line_iou(annotated_item["lines"], best_candidate["lines"]), 4
+            ),
         }
         if best_name_score >= 0.5:
             match_record["status"] = "correct"
@@ -237,6 +258,12 @@ def evaluate_structure(inferred: Dict[str, Any], annotated: Dict[str, Any]) -> D
     # measured nothing about correctness and always returned 0.0 in dry-run mode.
     structural_fidelity = _compute_structural_fidelity(base_report["details"]["correct"])
 
+    # Mean line-range IoU over matched pairs — how precisely matched structures
+    # were located, complementing the binary overlap gate.
+    matched = base_report["details"]["correct"] + base_report["details"]["partial"]
+    iou_values = [m.get("line_iou", 0.0) for m in matched]
+    avg_line_iou = round(sum(iou_values) / len(iou_values), 4) if iou_values else 0.0
+
     enhanced_summary = {
         **summary,
         "total_ground_truth": total_ground_truth,
@@ -244,6 +271,7 @@ def evaluate_structure(inferred: Dict[str, Any], annotated: Dict[str, Any]) -> D
         "completeness": round(completeness, 4),
         "hallucination_rate": round(hallucination_rate, 4),
         "structural_fidelity": structural_fidelity,
+        "avg_line_iou": avg_line_iou,
     }
 
     return {"summary": enhanced_summary, "details": base_report["details"]}

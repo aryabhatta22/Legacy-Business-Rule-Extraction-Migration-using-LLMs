@@ -18,11 +18,14 @@ from experiments.pipeline_logger import get_logger
 _METRIC_COLS = [
     "precision",
     "recall",
+    "precision_lenient",
+    "recall_lenient",
     "completeness",
     "hallucination_rate",
     "cbs",
     "structural_fidelity",
     "avg_semantic",
+    "avg_line_iou",
 ]
 
 
@@ -53,6 +56,8 @@ def _build_flat_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 "total_predicted": metrics.get("total_predicted", 0),
                 "precision": metrics.get("precision", 0.0),
                 "recall": metrics.get("recall", 0.0),
+                "precision_lenient": metrics.get("precision_lenient", 0.0),
+                "recall_lenient": metrics.get("recall_lenient", 0.0),
                 "completeness": metrics.get("completeness", 0.0),
                 "hallucination_rate": metrics.get("hallucination_rate", 0.0),
                 "cbs": metrics.get("cbs", 0.0),
@@ -60,6 +65,7 @@ def _build_flat_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 # don't distort averages across tasks.
                 "structural_fidelity": metrics.get("structural_fidelity"),
                 "avg_semantic": metrics.get("avg_semantic"),
+                "avg_line_iou": metrics.get("avg_line_iou"),
             }
         )
     return rows

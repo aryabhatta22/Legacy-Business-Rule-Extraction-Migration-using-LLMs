@@ -27,6 +27,22 @@ def _lines_overlap(a: List[int], b: List[int]) -> int:
         return len(set(a or []) & set(b or []))
 
 
+def _line_iou(a: List[int], b: List[int]) -> float:
+    """Intersection-over-union of two [start, end] evidence-line ranges.
+
+    Same range convention and fallback as _lines_overlap.
+    """
+    try:
+        a0, a1 = int(a[0]), int(a[1])
+        b0, b1 = int(b[0]), int(b[1])
+        inter = max(0, min(a1, b1) - max(a0, b0) + 1)
+        union = max(a1, b1) - min(a0, b0) + 1
+        return inter / union if union > 0 else 0.0
+    except Exception:
+        sa, sb = set(a or []), set(b or [])
+        return len(sa & sb) / len(sa | sb) if sa | sb else 0.0
+
+
 def _token_jaccard_similarity(a: str, b: str) -> float:
     """Return simple semantic similarity using token Jaccard."""
     at = _normalize_tokens(a)
@@ -126,6 +142,9 @@ def evaluate_business(inferred: Dict[str, Any], annotated: Dict[str, Any]) -> Di
             "inferred": best_candidate,
             "overlap": best_overlap,
             "semantic_score": round(best_similarity, 4),
+            "line_iou": round(
+                _line_iou(annotated_item["lines"], best_candidate["lines"]), 4
+            ),
         }
         if best_similarity >= 0.5:
             match_record["status"] = "correct"
@@ -168,6 +187,13 @@ def evaluate_business(inferred: Dict[str, Any], annotated: Dict[str, Any]) -> Di
         round(sum(matched_scores) / len(matched_scores), 4) if matched_scores else 0.0
     )
 
+    # Mean line-range IoU over matched pairs — evidence-location precision,
+    # complementing the binary overlap gate.
+    iou_values = [
+        m.get("line_iou", 0.0) for m in report["correct"] + report["partial"]
+    ]
+    avg_line_iou = round(sum(iou_values) / len(iou_values), 4) if iou_values else 0.0
+
     summary.update(
         {
             "total_ground_truth": total_ground_truth,
@@ -175,6 +201,7 @@ def evaluate_business(inferred: Dict[str, Any], annotated: Dict[str, Any]) -> Di
             "completeness": round(completeness, 4),
             "hallucination_rate": round(hallucination_rate, 4),
             "avg_semantic": avg_semantic,
+            "avg_line_iou": avg_line_iou,
         }
     )
     return {"summary": summary, "details": report}

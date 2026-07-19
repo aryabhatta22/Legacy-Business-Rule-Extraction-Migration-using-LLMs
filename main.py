@@ -34,10 +34,14 @@ def _read_prompts(path: str) -> dict:
 
 
 def _cobol_code_from_lines(cobol_obj: dict) -> str:
-    """Join COBOL source lines while preserving source order."""
+    """Join COBOL source lines, prefixing each with its absolute line number.
+
+    Ground-truth line references and the evaluators' line-overlap gate use
+    absolute line numbers, so the model must see them — without the prefix,
+    models can only guess line positions and evidence matching fails.
+    """
     lines = cobol_obj.get("lines", {})
-    ordered = [lines[key] for key in sorted(lines.keys())]
-    return "\n".join(ordered)
+    return "\n".join(f"{key}: {lines[key]}" for key in sorted(lines.keys()))
 
 
 def _fill_prompt(template: str, program: str, code: str) -> str:
@@ -154,6 +158,7 @@ def _record_result(
     eval_report: Dict[str, Any],
     complexity: Optional[str] = None,
     raw_response: Optional[str] = None,
+    error_message: Optional[str] = None,
 ):
     """Store the same per-run record in both detailed and JSONL summaries."""
     result = build_evaluation_result(
@@ -167,6 +172,7 @@ def _record_result(
         evaluation_report=eval_report,
         complexity=complexity,
         raw_response=raw_response,
+        error_message=error_message,
     )
     result_dict = result.to_dict()
     reporter.add_result(result_dict)
@@ -205,6 +211,14 @@ def main():
         programs = [p for p in programs if p["program"].upper() in PROGRAM_FILTER]
         logger.info(f"PROGRAMS filter active: {sorted(PROGRAM_FILTER)}", indent=0)
     model_runs = _get_model_runs()
+    if USE_LLM and not model_runs:
+        # LLM_Factory silently skips families without an API key; a live run
+        # with zero models would "succeed" with empty artifacts otherwise.
+        logger.error(
+            "USE_LLM=1 but no models were configured — is OPENROUTER_API_KEY set?",
+            indent=0,
+        )
+        raise SystemExit(1)
 
     logger.programs_loaded(len(programs))
 
@@ -232,6 +246,7 @@ def main():
                 # model cannot leak parsed output, status, or metrics into the next.
                 parsed = None
                 raw_response = None
+                error_message = None
                 validation_status = "skipped"
                 eval_report = _empty_evaluation_report()
 
@@ -248,6 +263,9 @@ def main():
                     )
                     parsed = _parsed_model_to_dict(response.get("parsed"))
                     raw_response = _serialize_raw_response(response.get("raw"))
+                    error_message = response.get("exception") or response.get(
+                        "validation_error"
+                    )
 
                     if response.get("success") and parsed is not None:
                         validation_status = "valid"
@@ -280,6 +298,7 @@ def main():
                     eval_report=eval_report,
                     complexity=complexity,
                     raw_response=raw_response,
+                    error_message=error_message,
                 )
                 logger.evaluation_complete(eval_report.get("summary", {}))
 
@@ -299,6 +318,7 @@ def main():
                 # structure task: every model run must start from a clean slate.
                 parsed = None
                 raw_response = None
+                error_message = None
                 validation_status = "skipped"
                 eval_report = _empty_evaluation_report()
 
@@ -315,6 +335,9 @@ def main():
                     )
                     parsed = _parsed_model_to_dict(response.get("parsed"))
                     raw_response = _serialize_raw_response(response.get("raw"))
+                    error_message = response.get("exception") or response.get(
+                        "validation_error"
+                    )
 
                     if response.get("success") and parsed is not None:
                         validation_status = "valid"
@@ -347,6 +370,7 @@ def main():
                     eval_report=eval_report,
                     complexity=complexity,
                     raw_response=raw_response,
+                    error_message=error_message,
                 )
                 logger.evaluation_complete(eval_report.get("summary", {}))
 

@@ -82,6 +82,7 @@ def re_evaluate_record(record: dict) -> dict:
         evaluation_report=eval_report,
         complexity=record.get("complexity"),
         raw_response=record.get("raw_response"),
+        error_message=record.get("error_message"),
     )
     result_dict = result.to_dict()
 

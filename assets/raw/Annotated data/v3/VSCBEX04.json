@@ -13,13 +13,20 @@
   },
   "structures": [
     {
+      "id": "PROGRAM_METADATA",
+      "name": "PROGRAM_METADATA",
+      "type": "METADATA",
+      "lines": [1, 21],
+      "source_snippet": "* Program name:    VSCBEX04\n* Original author: dastagg\n* Description: Example 04: Indexed File Processing: Update",
+      "confidence": "high",
+      "confidence_justification": "Comment header block visually delimited by asterisk banners at lines 1 and 21",
+      "description": "Program header comment block; states the program reads and updates 5 records in an indexed file opened I-O, ACCESS MODE IS RANDOM"
+    },
+    {
       "id": "IDENTIFICATION",
       "name": "IDENTIFICATION",
-      "type": "METADATA",
-      "lines": [
-        22,
-        23
-      ],
+      "type": "DECLARATION",
+      "lines": [22, 23],
       "source_snippet": "IDENTIFICATION DIVISION.\nPROGRAM-ID. VSCBEX04.",
       "confidence": "high",
       "confidence_justification": "IDENTIFICATION DIVISION and PROGRAM-ID are explicit COBOL reserved-word headers",
@@ -29,10 +36,7 @@
       "id": "ENVIRONMENT_DIV",
       "name": "ENVIRONMENT_DIV",
       "type": "CONFIGURATION",
-      "lines": [
-        25,
-        36
-      ],
+      "lines": [25, 36],
       "source_snippet": "CONFIGURATION SECTION.\nSOURCE-COMPUTER.   IBM WITH DEBUGGING MODE.\n\nSELECT CUSTFile\nASSIGN TO \"../idata/customer.idat\"\nORGANIZATION IS INDEXED\nRECORD KEY IS CUSTFile-Cust-ID\nACCESS MODE IS RANDOM\nFILE STATUS IS WS-CUSTFile-Status.",
       "confidence": "high",
       "confidence_justification": "ENVIRONMENT DIVISION / FILE-CONTROL / SELECT are explicit. Note SOURCE-COMPUTER...WITH DEBUGGING MODE is NOT commented out here (unlike VSCBEX01-03), so the 'D'-prefixed debug DISPLAY lines in this program are active, not dormant",
@@ -42,10 +46,7 @@
       "id": "DATA_DIV",
       "name": "DATA_DIV",
       "type": "DATA",
-      "lines": [
-        38,
-        68
-      ],
+      "lines": [38, 68],
       "source_snippet": "DATA DIVISION.\nFILE SECTION.\nFD  CUSTFile.\n    COPY CUSTOMER REPLACING ==:tag:== BY ==CUSTFile==.\n...\n01  WS-Key-HOLD.\n    12 FILLER PIC 9(9) VALUE 001000100.\n...\n18 WS-Key-Value PIC 9(04).\n18 WS-Price     PIC 9(3)V99.",
       "confidence": "high",
       "confidence_justification": "DATA DIVISION, FILE SECTION, and WORKING-STORAGE SECTION headers are explicit; the packed key+price table is a distinguishing feature versus VSCBEX03/05, which carry only a bare key",
@@ -53,12 +54,9 @@
     },
     {
       "id": "MAINLINE",
-      "name": "0000-Mainline",
+      "name": "MAINLINE",
       "type": "ENTRY_POINT",
-      "lines": [
-        70,
-        75
-      ],
+      "lines": [70, 75],
       "source_snippet": "PROCEDURE DIVISION.\n0000-Mainline.\n    PERFORM 1000-Begin-Job.\n    PERFORM 2000-Process.\n    PERFORM 3000-End-Job.\n    GOBACK.",
       "confidence": "high",
       "confidence_justification": "PROCEDURE DIVISION plus 0000-Mainline paragraph unambiguously mark program entry",
@@ -66,12 +64,9 @@
     },
     {
       "id": "BEGIN_JOB",
-      "name": "1000-Begin-Job",
+      "name": "BEGIN_JOB",
       "type": "INITIALIZATION",
-      "lines": [
-        77,
-        80
-      ],
+      "lines": [77, 80],
       "source_snippet": "1000-Begin-Job.\n    MOVE WS-Key-HOLD  TO WS-Key-Table-Setup.\n    OPEN I-O CUSTFile.\nD    DISPLAY \"CUSTFile Open Status: \" WS-CUSTFile-Status.",
       "confidence": "high",
       "confidence_justification": "MOVE and OPEN are direct initialization actions; OPEN I-O (not INPUT) is required because the program both reads and rewrites",
@@ -79,12 +74,9 @@
     },
     {
       "id": "PROCESS_LOOP",
-      "name": "2000-Process",
+      "name": "PROCESS_LOOP",
       "type": "LOOP",
-      "lines": [
-        82,
-        89
-      ],
+      "lines": [82, 89],
       "source_snippet": "2000-Process.\n    PERFORM VARYING WS-Key-SUB FROM 1 BY 1\n       UNTIL WS-Key-SUB > WS-Key-Element-Cnt\n       MOVE WS-Key-Value(WS-Key-SUB) TO\n          CUSTFile-Cust-ID\n       PERFORM 5000-Read-CUSTFile\n       PERFORM 2100-Update-CUSTFile\n    END-PERFORM.",
       "confidence": "high",
       "confidence_justification": "PERFORM VARYING...UNTIL...END-PERFORM is explicit indexed-loop syntax",
@@ -92,12 +84,9 @@
     },
     {
       "id": "UPDATE_RECORD",
-      "name": "2100-Update-CUSTFile",
+      "name": "UPDATE_RECORD",
       "type": "PROCESSING",
-      "lines": [
-        91,
-        95
-      ],
+      "lines": [91, 95],
       "source_snippet": "2100-Update-CUSTFile.\n    MOVE WS-Price(WS-Key-SUB) TO\n       CUSTFile-Cust-Price.\n\n    PERFORM 6000-Re-Write-CUSTFile.",
       "confidence": "high",
       "confidence_justification": "Direct MOVE of the table price into the record buffer, followed by an explicit PERFORM of the rewrite paragraph",
@@ -105,12 +94,9 @@
     },
     {
       "id": "END_JOB",
-      "name": "3000-End-Job",
+      "name": "END_JOB",
       "type": "TERMINATION",
-      "lines": [
-        97,
-        103
-      ],
+      "lines": [97, 103],
       "source_snippet": "3000-End-Job.\n    DISPLAY EOJ-End-Message.\n    DISPLAY \"      Records Read: \" FD-CUSTFile-Record-Cnt\n    DISPLAY \"Records Re-Written: \" FD-CUSTFile-Re-Write-Cnt\n\n    CLOSE CUSTFile.\nD    DISPLAY \"CUSTFile Close Status: \" WS-CUSTFile-Status.",
       "confidence": "high",
       "confidence_justification": "DISPLAY and CLOSE statements clearly indicate termination/cleanup",
@@ -118,12 +104,9 @@
     },
     {
       "id": "READ_RANDOM",
-      "name": "5000-Read-CUSTFile",
+      "name": "READ_RANDOM",
       "type": "FILE_IO",
-      "lines": [
-        105,
-        123
-      ],
+      "lines": [105, 123],
       "source_snippet": "5000-Read-CUSTFile.\n    READ CUSTFile\n       RECORD KEY IS CUSTFile-Cust-ID\n    END-READ.\n    IF WS-CUSTFile-Good\n       ADD +1 TO FD-CUSTFile-Record-Cnt\n    ELSE\n       IF WS-CUSTFile-EOF\n          NEXT SENTENCE\n       ELSE\n          DISPLAY \"** ERROR **: 5000-Read-CUSTFile\"\n          ...\n          PERFORM 3000-End-Job\n          MOVE 8 TO RETURN-CODE\n          GOBACK\n       END-IF\n    END-IF.",
       "confidence": "medium",
       "confidence_justification": "READ...RECORD KEY IS is explicit random-access syntax, but the paragraph combines success counting, a not-found branch, and a hard-error abend path into one logical unit",
@@ -131,12 +114,9 @@
     },
     {
       "id": "REWRITE_CUSTFILE",
-      "name": "6000-Re-Write-CUSTFile",
+      "name": "REWRITE_CUSTFILE",
       "type": "FILE_IO",
-      "lines": [
-        125,
-        137
-      ],
+      "lines": [125, 137],
       "source_snippet": "6000-Re-Write-CUSTFile.\n    REWRITE CUSTFile-Customer-Record.\n    IF WS-CUSTFile-Good\n       ADD +1 TO FD-CUSTFile-Re-Write-Cnt\n    ELSE\n       DISPLAY \"** ERROR **: 6000-Re-Write-CUSTFile\"\n       DISPLAY \"Re-Write CUSTFile Failed.\"\n       DISPLAY \"File Status: \" WS-CUSTFile-Status\n       PERFORM 3000-End-Job\n       MOVE 8 TO RETURN-CODE\n       GOBACK\n    END-IF.",
       "confidence": "medium",
       "confidence_justification": "REWRITE is explicit; error handling is a plain file-status IF/ELSE (no INVALID KEY clause is used)",

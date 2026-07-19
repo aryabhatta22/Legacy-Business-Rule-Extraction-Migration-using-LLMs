@@ -1,6 +1,6 @@
 # Thesis / Project Tracker
 
-Last updated: 2026-07-13.
+Last updated: 2026-07-19.
 
 Related docs: `docs/Implementation_Requirements.md` (detailed task specs T1–T8),
 `docs/Execution_Status.md` (session-by-session log of what actually landed and why).
@@ -10,16 +10,23 @@ This tracker is the summary view; those two hold the detail.
 
 | # | Task | Problem | Needs | Status |
 |---|------|---------|-------|--------|
-| 1 | Apply annotation-quality tweaks found 2026-07-13 (rename ~8 structure names to source spellings; retype `IDENTIFICATION` to `METADATA`; decide on `PROGRAM_METADATA` comment-block entry) | P11 | User decision, then ~1h edits | ❌ Open — full list in `docs/Execution_Status.md` 2026-07-13 section |
-| 2 | Full live run — the 160-combination matrix has never been captured (only 16 OPEN_AI × VSCBEX01 runs with an old prompt set exist, archived) | P2 | User go-ahead (API cost); smoke-test first with `PROGRAMS=VSCBEX01 USE_LLM=1` | ❌ Open — everything below needs this data |
+| 1 | Annotation quality tweaks | P11 | — | ✅ Done — user re-annotated (13 Jul) + 19 Jul batch dropped `PROGRAM_METADATA`, retyped `ENVIRONMENT_DIV` |
+| 2 | Full live run — the 160-combination matrix has never been captured | P2 | User triggers in a healthy OpenRouter window (19 Jul was degraded: ~50% call timeouts). Pipeline health proven by 31 clean smoke runs; user chose to skip a smoke rerun — the full run doubles as final artifact verification | ❌ Open — everything below needs this data |
 | 3 | Calibrate the `0.5` similarity thresholds against labeled pairs; document in `docs/threshold_calibration.md` | P3 | Live-run data (#2) + user labels 30–50 pairs | ❌ Open |
 | 4 | Manual evaluator validation — user reviews 20–50 evaluated samples, record agreement rate | P8 | Live-run data (#2) + sampling/export helper script + user review time | ❌ Open |
 | 5 | Sub-classify `hallucinated` items (duplicate / split / merged) and add per-model error-type reporting | P4, P9 | Valid data (#2); purely additive code | ❌ Open |
-| 6 | Semantic (embedding) similarity to replace/augment token overlap | P6, P7 | User approval — adds a dependency, changes reproducibility | ⏸️ Skipped by user 2026-07-11; re-raise next iteration |
-| 7 | Thesis writing: methodology positioning vs prior benchmarks, corrected-evaluator description, calibrated thresholds | P10 | #1–#4 done | ❌ Open (writing task, not repo code) |
+| 6 | Semantic (embedding) similarity to replace/augment token overlap | P6, P7 | User approval — adds a dependency, changes reproducibility | ⏸️ Good-to-have, deferred by user (11 Jul, reconfirmed 19 Jul); revisit next iteration |
+| 7 | Thesis writing: methodology positioning vs prior benchmarks, corrected-evaluator description, numbered-line prompting note, new metrics, calibrated thresholds | P10 | #2–#4 done | ❌ Open (writing task, last step after all verifications) |
 
-Dependency chain in short: **#1 → #2 → (#3, #4, #5) → #7**. #6 is optional and
+Dependency chain in short: **#2 → (#3, #4, #5) → #7**. #6 is optional and
 orthogonal but affects #3 if adopted (thresholds must be recalibrated).
+
+Fixes landed 2026-07-19 (detail + change notes in `docs/Execution_Status.md`):
+numbered source lines in prompts, prompt/schema field alignment, `error_message`
+stored per run, two new metrics (`precision_lenient`/`recall_lenient`,
+`avg_line_iou`), live-run guard when no API key is configured. The four
+LLM-reported bugs were triaged there too (Bug 1 false; Bug 2 folded into #3;
+Bugs 3–4 fixed).
 
 Note for #2/#3: the archived live records embed the OLD ground truth (pre-2026-07-13
 re-annotation) inside each record, and `scripts/re_evaluate.py` re-scores against that

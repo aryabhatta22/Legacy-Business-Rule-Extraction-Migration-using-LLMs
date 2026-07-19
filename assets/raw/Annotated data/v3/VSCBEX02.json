@@ -13,13 +13,20 @@
   },
   "structures": [
     {
+      "id": "PROGRAM_METADATA",
+      "name": "PROGRAM_METADATA",
+      "type": "METADATA",
+      "lines": [1, 21],
+      "source_snippet": "* Program name:    VSCBEX02\n* Original author: David Stagowski\n* Description: Example 02: Indexed File Processing: Read All",
+      "confidence": "high",
+      "confidence_justification": "Comment header block is visually delimited by asterisk banners at lines 1 and 21",
+      "description": "Program header comment block describing purpose, author, and maintenance log"
+    },
+    {
       "id": "IDENTIFICATION",
       "name": "IDENTIFICATION",
-      "type": "METADATA",
-      "lines": [
-        22,
-        23
-      ],
+      "type": "DECLARATION",
+      "lines": [22, 23],
       "source_snippet": "IDENTIFICATION DIVISION.\nPROGRAM-ID. VSCBEX02.",
       "confidence": "high",
       "confidence_justification": "IDENTIFICATION DIVISION and PROGRAM-ID are explicit COBOL reserved-word headers",
@@ -29,10 +36,7 @@
       "id": "ENVIRONMENT_DIV",
       "name": "ENVIRONMENT_DIV",
       "type": "CONFIGURATION",
-      "lines": [
-        25,
-        36
-      ],
+      "lines": [25, 36],
       "source_snippet": "SELECT INFile\nASSIGN TO \"../idata/customer.idat\"\nORGANIZATION IS INDEXED\nRECORD KEY IS INFile-Cust-ID\nACCESS MODE IS SEQUENTIAL\nFILE STATUS IS WS-INFile-Status.",
       "confidence": "high",
       "confidence_justification": "ENVIRONMENT DIVISION / FILE-CONTROL / SELECT are explicit; single file assignment with no ambiguity",
@@ -42,10 +46,7 @@
       "id": "DATA_DIV",
       "name": "DATA_DIV",
       "type": "DATA",
-      "lines": [
-        38,
-        52
-      ],
+      "lines": [38, 52],
       "source_snippet": "DATA DIVISION.\nFILE SECTION.\nFD  INFile.\n    COPY CUSTOMER REPLACING ==:tag:== BY ==INFile==.",
       "confidence": "high",
       "confidence_justification": "DATA DIVISION, FILE SECTION, and WORKING-STORAGE SECTION headers are explicit",
@@ -53,12 +54,9 @@
     },
     {
       "id": "MAINLINE",
-      "name": "0000-Mainline",
+      "name": "MAINLINE",
       "type": "ENTRY_POINT",
-      "lines": [
-        54,
-        59
-      ],
+      "lines": [54, 59],
       "source_snippet": "PROCEDURE DIVISION.\n0000-Mainline.\n    PERFORM 1000-Begin-Job.\n    PERFORM 2000-Process UNTIL WS-INFile-EOF.\n    PERFORM 3000-End-Job.\n    GOBACK.",
       "confidence": "high",
       "confidence_justification": "PROCEDURE DIVISION plus the 0000-Mainline paragraph unambiguously mark program entry; the driving loop is an inline PERFORM...UNTIL, not a separate END-PERFORM block",
@@ -66,12 +64,9 @@
     },
     {
       "id": "BEGIN_JOB",
-      "name": "1000-Begin-Job",
+      "name": "BEGIN_JOB",
       "type": "INITIALIZATION",
-      "lines": [
-        61,
-        64
-      ],
+      "lines": [61, 64],
       "source_snippet": "1000-Begin-Job.\n    OPEN INPUT INFile.\nD    DISPLAY \"INFile Status: \" WS-INFile-Status.\n    PERFORM 5000-Read-INFile.",
       "confidence": "high",
       "confidence_justification": "OPEN and a priming READ (via PERFORM) are direct initialization actions",
@@ -79,12 +74,9 @@
     },
     {
       "id": "PROCESS_RECORD",
-      "name": "2000-Process",
+      "name": "PROCESS_RECORD",
       "type": "PROCESSING",
-      "lines": [
-        66,
-        70
-      ],
+      "lines": [66, 70],
       "source_snippet": "2000-Process.\n    IF WS-INFile-Good\n       DISPLAY INFile-Customer-Record\n    END-IF.\n    PERFORM 5000-Read-INFile.",
       "confidence": "high",
       "confidence_justification": "Simple conditional DISPLAY followed by the next read; no branching complexity",
@@ -92,12 +84,9 @@
     },
     {
       "id": "END_JOB",
-      "name": "3000-End-Job",
+      "name": "END_JOB",
       "type": "TERMINATION",
-      "lines": [
-        72,
-        75
-      ],
+      "lines": [72, 75],
       "source_snippet": "3000-End-Job.\n    DISPLAY EOJ-End-Message.\n    DISPLAY \"   Records Read: \" FD-INFile-Record-Cnt\n    CLOSE INFile.",
       "confidence": "high",
       "confidence_justification": "DISPLAY and CLOSE statements clearly indicate termination/cleanup",
@@ -105,12 +94,9 @@
     },
     {
       "id": "READ_INFILE",
-      "name": "5000-Read-INFile",
+      "name": "READ_INFILE",
       "type": "FILE_IO",
-      "lines": [
-        77,
-        95
-      ],
+      "lines": [77, 95],
       "source_snippet": "5000-Read-INFile.\n    READ INFile\n       AT END SET WS-INFile-EOF TO TRUE\n    END-READ.\n    IF WS-INFile-Good\n       ADD +1 TO FD-INFile-Record-Cnt\n    ELSE\n       IF WS-INFile-EOF\n          NEXT SENTENCE\n       ELSE\n          DISPLAY \"** ERROR **: 5000-Read-INFile\"\n          ...\n          PERFORM 3000-End-Job\n          MOVE 8 TO RETURN-CODE\n          GOBACK\n       END-IF\n    END-IF.",
       "confidence": "medium",
       "confidence_justification": "READ/AT END is explicit, but the paragraph combines EOF handling, counter increment, and a hard-error abend path into one logical unit",

@@ -1,0 +1,43 @@
+{
+  "best_overall_cbs": {
+    "model": "openai/gpt-4.1-mini",
+    "prompt_strategy": "cot_hidden",
+    "task": "structure",
+    "file": "VSCBEX01",
+    "complexity": "medium",
+    "cbs": 0.5118
+  },
+  "best_structural_fidelity": {
+    "model": "openai/gpt-4.1-mini",
+    "prompt_strategy": "naive",
+    "task": "structure",
+    "file": "VSCBEX01",
+    "complexity": "medium",
+    "structural_fidelity": 1.0
+  },
+  "best_schema_pass_rate": {
+    "model": "openai/gpt-4.1-mini",
+    "valid_runs": 8,
+    "total_runs": 8,
+    "schema_pass_rate": 1.0
+  },
+  "best_semantic_faithfulness": {
+    "model": "qwen/qwen-2.5-72b-instruct",
+    "prompt_strategy": "structured",
+    "task": "business",
+    "file": "VSCBEX01",
+    "complexity": "medium",
+    "avg_semantic": 0.2035
+  },
+  "lowest_hallucination": {
+    "model": "qwen/qwen-2.5-72b-instruct",
+    "prompt_strategy": "naive",
+    "task": "structure",
+    "file": "VSCBEX01",
+    "complexity": "medium",
+    "hallucination_rate": 0.3846
+  },
+  "cbs_by_complexity": {
+    "medium": 0.1228
+  }
+}

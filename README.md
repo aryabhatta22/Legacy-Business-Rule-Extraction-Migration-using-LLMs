@@ -20,7 +20,9 @@ All models are accessed through OpenRouter using a single `OPENROUTER_API_KEY`.
 
 For each (model, prompt strategy, task, file) combination the pipeline:
 
-1. Builds the prompt from the COBOL source and the prompt template
+1. Builds the prompt from the COBOL source and the prompt template — source lines are
+   prefixed with their absolute line numbers (`"77: 1000-Begin-Job."`) so models can
+   report the line references the evaluators match against
 2. Calls the LLM via OpenRouter
 3. Extracts JSON from the response using a brace-based strategy
 4. Validates the JSON against the task Pydantic schema
@@ -73,12 +75,20 @@ All metrics are defined consistently across the codebase and thesis.
 |--------|---------|
 | Precision | `correct / total_predicted` |
 | Recall | `correct / total_ground_truth` |
+| Precision (lenient) | `(correct + 0.5 × partial) / total_predicted` |
+| Recall (lenient) | `(correct + 0.5 × partial) / total_ground_truth` |
 | Completeness | `(correct + partial) / total_ground_truth` |
 | Hallucination Rate | `hallucinated / total_predicted` |
-| CBS | `0.40R + 0.30P + 0.20(1−H) + 0.10C` |
+| CBS | `0.40R + 0.30P + 0.20(1−H) + 0.10C` (strict R/P only) |
 | Structural Fidelity | `correct_with_valid_parent / total_correct` |
 | Avg Semantic | `mean(semantic_score of matched business-rule pairs)` |
+| Avg Line IoU | `mean(intersection-over-union of matched line ranges)` |
 | Schema Pass Rate | `valid_responses / total_responses` |
+
+The lenient variants give half credit to `partial` matches (found and grounded, but
+below the similarity threshold); CBS keeps using the strict values. Avg Line IoU
+measures how precisely matched items were located, beyond the binary overlap gate.
+Both were added 2026-07-19 (see `docs/Execution_Status.md`).
 
 - `correct` — matches meeting the task threshold (name score ≥ 0.5 for structure; semantic score ≥ 0.5 for business)
 - `partial` — matches with grounding overlap but weaker semantic / name similarity

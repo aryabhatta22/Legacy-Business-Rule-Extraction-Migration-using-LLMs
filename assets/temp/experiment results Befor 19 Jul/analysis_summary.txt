@@ -1,0 +1,19 @@
+=== COBOL LLM Benchmark — Analysis Summary ===
+
+Best Overall CBS
+  : model=openai/gpt-4.1-mini, prompt_strategy=cot_hidden, task=structure, file=VSCBEX01, cbs=0.5118
+
+Best Structural Fidelity
+  : model=openai/gpt-4.1-mini, prompt_strategy=naive, structural_fidelity=1.0
+
+Best Schema Pass Rate
+  : model=openai/gpt-4.1-mini, valid_runs=8, total_runs=8, schema_pass_rate=1.0
+
+Best Semantic Faithfulness (Business Task)
+  : model=qwen/qwen-2.5-72b-instruct, prompt_strategy=structured, avg_semantic=0.2035
+
+Lowest Hallucination Rate
+  : model=qwen/qwen-2.5-72b-instruct, prompt_strategy=naive, task=structure, hallucination_rate=0.3846
+
+Mean CBS by Complexity
+  medium: 0.1228
